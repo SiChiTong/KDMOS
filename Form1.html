@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MOBILE FACTORY</title>
+
+<link rel="stylesheet" href="./css/style.css">
+    <script type="text/javascript" src="./script/jquery.min.js"></script>
+    <script type="text/javascript" src="./script/script.js"> </script>
+</head>
+<body>
+
+
+    <br> <br>
+
+    <h1 align ="center" style="color: white">Make your Mobile Phone Order</h1>
+    <br> <br>
+
+    <div align="center" >
+        
+        <span style="color: white">Your Name   :   </span> <input type="text" id="name" name="name" placeholder="Enter your full name" required/>
+                
+                
+        <span style="color: white">Your Address  :  </span> <input type="text" id="Address" name="Address" placeholder="Your Address Here" required/>
+              
+                
+        <span style="color: white"> Your Phone  :   </span> <input type="tel" id="Phone" name="Phone"  placeholder="Your Phone Number" required/>
+               
+
+
+
+ 
+      <br>
+
+
+      <br> 
+
+        <select name="Frame-Type" id="Frame-Type">
+            <option value="Frame_1">frame1</option>
+            <option value="Frame_2">frame2</option>
+            <option value="Frame_3  ">frame3</option>
+        </select>
+
+        <select name="Frame-Colour" id="Frame-Colour">
+            <option value="blue">Blue</option>
+            <option value="red">Red</option>
+            <option value="green">Green</option>
+        </select>
+
+        <select name="keyboard-type" id="keyboard-type">
+            <option value="Keyboard_1">Keyboard1</option>
+            <option value="Keyboard_2">Keyboard2</option>
+            <option value="Keyboard_3">Keyboard3</option>
+        </select>
+
+        <select name="Keyboard-Colour" id="Keyboard-Colour">
+            <option value="blue">Blue</option>
+            <option value="red">Red</option>
+            <option value="green">Green</option>
+        </select>
+
+        <select name="Screen-Type" id="Screen-Type">
+            <option value="Screen_1">Screen1</option>
+            <option value="Screen_2">Screen2</option>
+            <option value="Screen_3">Screen3</option>
+        </select>
+
+        <select name="Screen-Colour" id="Screen-Colour">
+            <option value="blue">Blue</option>
+            <option value="red">Red</option>
+            <option value="green">Green</option>
+        </select>
+
+        <input type='number' size='10' min="1" id='quantity' name='Quantity' value='1' />
+
+        <button class="add-row" > Add Row + </button>
+        
+        <button class="send-server" > Send </button>
+
+    <br>
+
+		  
+
+	<br>
+
+
+
+    </div>
+
+
+    <table>
+        <thead>
+            <tr cellspadding="2px">
+                <th>Select</th>
+                <th>Name</th>
+                <th>Frame Type</th>
+                <th>Frame Colour</th>
+                <th>keyboard type</th>
+                <th>Keyboard Colour</th>
+                <th>Screen Type</th>
+                <th>Screen Colour</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+        </tbody>
+    </table>
+    <button type="button" class="delete-row">Delete Row</button>
+</body> 
+</html>                                		

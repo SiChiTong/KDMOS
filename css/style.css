@@ -1,0 +1,55 @@
+
+    form{
+        margin: 20px 0;
+    }
+    form input, button{
+        padding: 5px;
+    }
+    table{
+        width: 100%;
+        margin-bottom: 20px;
+		border-collapse: collapse;
+    }
+    table, th, td{
+        border: 1px solid #cdcdcd;
+        color: white;
+    }
+    table th, table td{
+        padding: 10px;
+        text-align: left;
+    }
+
+    body {
+        background-image: url("../img/wall.jpg");
+        background-size: cover;
+        background-repeat: no-repeat;
+    }
+
+    #comment {
+        display: inline-block;
+        color: red;
+
+
+    }
+
+    .required {
+        border-color : red;
+                }
+
+    .tooltip::-webkit-input-placeholder { /* Chrome */
+  color: red;
+}
+    .tooltip::-ms-input-placeholder { /* IE 10+ */
+  color: red;
+}
+    .tooltip::-moz-placeholder { /* Firefox 19+ */
+  color: red;
+  opacity: 1;
+}
+    .tooltip::-moz-placeholder { /* Firefox 4 - 18 */
+  color: red;
+  opacity: 1;
+}
+
+		
+		
