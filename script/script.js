@@ -91,7 +91,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
             };
 
             makeAjaxCall(
-                'http://127.0.0.1:6500/updateOrder', //to the orchestrator
+                'http://127.0.0.1:8000/updateOrder', //SENDS DATA TO THE ORDER CLASS(CREATES ORDER OBJECT AND UPDATES KB)
                 makeAjaxCall(
                     'http://127.0.0.1:4500', // ot the Gateway
                     function() {}

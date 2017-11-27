@@ -16,6 +16,7 @@ const num_of_fields = 10
 
 var bodyParser = require('body-parser');
 app.use(bodyParser.json());
+app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({ extended: true }))
 var hostname = 'localhost';
 var port = 6000;
@@ -64,56 +65,16 @@ var optionsS1000 = {
         'Content-Type': 'application/json'
     }
 };
-
-//function to make query to the fuseki server
-function fuseki(type,query){
-    if (type == "query")
-    {
-        optionsKB.url = "http://127.0.0.1:3032/iii2017/query";
+var optionsSim = {
+    method: 'POST', //
+    body: {"destUrl": "http://127.0.0.1"}, // Javascript object
+    json: true,
+    headers: {
+        'Content-Type': 'application/json'
     }
-    else if (type == "update")
-    {
-        optionsKB.url = "http://127.0.0.1:3032/iii2017/update";
-    }
+};
 
 
-    optionsKB.body = query; //Assembly of the new query
-
-
-    request(optionsKB, function (err, res, body) {
-        if (err) {
-            console.log('Error instantiating Object in the knowledge base', err);
-            return;
-        }
-        //console.log(body);
-        parseXml(body, function (err, result) {
-            console.log(result.html.body[0].h1);
-            if (type == "update") {
-                if (result.html.body[0].h1 == 'Success') {
-                    console.log('Successful updation');
-                }
-                else {
-                    console.log("Error while performing updation");
-                }
-            }
-            else if(type == "query"){
-
-            }
-
-
-        });
-
-
-
-
-        // for(var i = 0; i<body.results.bindings.length; i++) {
-        //     var next = body.results.bindings[i].url.value;
-        //     //var setValue = next;
-        //     //requestOut(next);
-        //     console.log(next);
-        // }
-    });
-}
 /*
  //function for receiving order value from the operator
  function callOrder(ord){
@@ -160,64 +121,19 @@ app.get('/', function (req, res) {
 //defining counter variable and getting into the condition till counter is less than set value
 
 
-app.post('/updateOrder',function (req,res) {
-    console.log('newOrder Received in orchestrator');
-  //  console.log(req.body);
-    res.end();
-
-    var fieldvalues = req.body.data;//Array to hold the values of the fields in the form
-    console.log(fieldvalues.length);
-    console.log(fieldvalues[0].Name);
-
-    //CREATING THE ORDER IN THE KNOWLEDGE BASE
-    for(var i=0; i<fieldvalues.length ; i ++) {
-        var j =i+1;
-        query = sparqlgen.createInstance("Order");
-        //console.log(query);
-        fuseki("update", query);
-
-
-        var query1=sparqlgen.createInstanceProperty("Order_"+j,"hasCustomerName",fieldvalues[i].Name);
-        fuseki("update",query1);
-        var query2=sparqlgen.createInstanceProperty("Order_"+j,"hasAddress",fieldvalues[i].Address);
-        fuseki("update",query2);
-        var query3=sparqlgen.createInstanceProperty("Order_"+j,"hasPhone",fieldvalues[i].Phone);
-        fuseki("update",query3);
-        var query4=sparqlgen.createInstanceProperty("Order_"+j,"hasFrameType",fieldvalues[i].FrameType);
-        fuseki("update",query4);
-        var query5=sparqlgen.createInstanceProperty("Order_"+j,"hasFrameColour",fieldvalues[i].FrameColour);
-        fuseki("update",query5);
-        var query6=sparqlgen.createInstanceProperty("Order_"+j,"hasKeyboardType",fieldvalues[i].KeyboardType);
-        fuseki("update",query6);
-        var query7=sparqlgen.createInstanceProperty("Order_"+j,"hasKeyboardColour",fieldvalues[i].KeyboardColour);
-        fuseki("update",query7);
-        var query8=sparqlgen.createInstanceProperty("Order_"+j,"hasScreenType",fieldvalues[i].ScreenType);
-        fuseki("update",query8);
-        var query9=sparqlgen.createInstanceProperty("Order_"+j,"hasScreenColour",fieldvalues[i].ScreenColour);
-        fuseki("update",query9);
-        var query10=sparqlgen.createInstanceProperty("Order_"+j,"hasOrderQuantity",fieldvalues[i].Quantity);
-        fuseki("update",query10);
-
-
-        // console.log(query2);
-
-
-        //fuseki("update", query);
-    }
-
-
-    //CREATING AN OBJECT OF ORDERS CLASS
-    optionsOrder.body = fieldvalues;
-    request(optionsOrder, function (err, res, body) {
-        if (err) {
-            console.log('Error creating Object of Class Order', err);
-            return;
+app.post('/invokeService',function (req,res) {
+    console.log('Received invoke command from the Workstation Class: ', req.body);
+    optionsSim.url = JSON.parse(req.body);
+    console.log("DEBUG 2",optionsSim.url);
+    request(optionsSim, function(err,res){
+        if(err){
+            console.log('Error from Orchestrator: Error Invoking service on the line');
+            console.log(res);
         }
 
 
     });
-
-
+    res.end();
 
 
 
