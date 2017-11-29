@@ -28,4 +28,9 @@ module.exports = {
         var query = "query= "+ prefix_iii +  " SELECT ?variable WHERE {?subject iii:hasLinkDest iii:"+neighbour+". ?subject iii:hasReachLink ?variable.}";
         return query;
     },
+
+    checkOrder: function(product_num){
+        var query = "query= "+ prefix_iii +  " ASK{ iii:product_"+product_num+" a iii:Product.}";
+        return query;
+    },
 };

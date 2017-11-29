@@ -207,6 +207,7 @@ workstation.prototype.runServer = function (port)
                 break;
             case "Z5_Changed":
                 break;
+            case "PalletLoaded"://update PalletID to the first product in OrderClass
         }
     });
 
@@ -251,7 +252,7 @@ var ws3 = new workstation(3,'blue','','','','','192.168.3.1','192.168.3.2');
 var ws4 = new workstation(4,'green','','','','','192.168.4.1','192.168.4.2');
 var ws5 = new workstation(5,'red','','','','','192.168.5.1','192.168.5.2');
 var ws6 = new workstation(6, 'blue','','','','','192.168.6.1','192.168.6.2');
-var ws7 = new workstation(7,'loadpallet','zone_2_7','zone_3_7','zone_5_7','NILL','192.168.7.1','192.168.7.2');
+var ws7 = new workstation(7,'loadpallet','zone_2_7','zone_3_7','zone_5_7','NILL','127.0.0.1','127.0.0.1');
 var ws8 = new workstation(8,'green','','','','','192.168.8.1','192.168.8.2');
 var ws9 = new workstation(9, 'red','','','','','192.168.9.1','192.168.9.2');
 var ws10 = new workstation(10, 'blue','','','','','192.168.10.1','192.168.10.2');

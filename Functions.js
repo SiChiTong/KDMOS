@@ -37,7 +37,7 @@ module.exports = {
         console.log("Processed Subject: "+ subject);
         return subject;
     },
-    fuseki: function(type,query){
+    fuseki: function(type,query,callback){
       //  var result = "default";
         var optionsKB = {
             method: 'post',
@@ -58,12 +58,16 @@ module.exports = {
                     return;
                 }
                 //console.log(body);
+                //     console.log(body);
 
-
-                    var str = body.results.bindings[0].variable.value;
-                    result = str.split("#")[1];
-                    console.log("From function:", result);
-                    return result;
+                    // var str = body.results.bindings[0].variable.value;
+                    // result = str.split("#")[1];
+                    // console.log("From function:", result);
+                    if(query.includes("ASK")) {
+                    var result  =body.boolean;
+                        console.log('From Function', body.boolean);
+                        callback(result);
+                    }
 
 
 
@@ -82,10 +86,10 @@ module.exports = {
                 }
                 //console.log(body);
                 parseXml(body, function (err, result) {
-                    console.log(result.html.body[0].h1);
+                   // console.log(result.html.body[0].h1);
 
                         if (result.html.body[0].h1 == 'Success') {
-                            console.log('Successful updation');
+                           console.log('Successful updation');
                         }
                         else {
                             console.log("Error while performing updation");

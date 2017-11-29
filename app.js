@@ -3,9 +3,10 @@
  */
 var express = require('express');
 var app = express();
-var request = require('request');
-var http = require('http');
 var path = require('path');
+//
+
+ // instantiation of socket io object which is listening on port 4000
 
 var builder = require('xmlbuilder');
 var validator = require('xsd-schema-validator');
@@ -13,9 +14,12 @@ var bodyParser = require('body-parser')
 
 
 
+
+
 app.use("/css", express.static(__dirname + '/css'));
 app.use("/script", express.static(__dirname + '/script'));
 app.use("/img", express.static(__dirname + '/img'));
+
 
 
 

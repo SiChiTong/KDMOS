@@ -5,28 +5,48 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
 var request = require('request');
-var pallcounter_=0;
-var num_orders = 1;
 var orders= new Array();
 var sparqlgen = require('./SPARQLGen');
 var parseXml = require('xml2js').parseString;
+var product = require('./Product.js');
+var functions = require('./Functions');
+var product_num=1;
+var product_status_ = false;
 
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-var Order= function(orderNumber, customerName, customerAddress, customerPhone, frameType, frameColour, keyboardType, keyboardColour, screenType, screenColour,orderQuantity) {
+var Order= function(orderNumber, customerName, customerAddress, customerPhone, orders) {
     this.orderNumber = orderNumber;
     this.customerName = customerName;
     this.customerAddress = customerAddress;
     this.customerPhone = customerPhone;
-    this.frameType = frameType;
-    this.frameColour = frameColour;
-    this.keyboardType = keyboardType;
-    this.keyboardColour = keyboardColour;
-    this.screenType = screenType;
-    this.screenColour = screenColour;
-    this.orderQuantity= orderQuantity;
+    this.products = [];
+    this.orders = orders;
+
+};
+
+Order.prototype.addProduct = function(product) {
+    this.products.push(product);
+};
+
+Order.prototype.getOrderInfo = function() {
+    //TODO
+    var result = '';
+    for(var i = 0; i<this.products.length; i++){
+        result = result + 'Product: ' + this.products[i].getDescription() + ' for ' + this.products[i].getPrice() + ' EUR.\n'
+    }
+    return result;
+};
+
+Order.prototype.listAllOrders = function() {
+    //TODO
+    var result = '';
+    for(var i = 0; i<this.orders.length; i++){
+        result = result + '\nOrder: ' + this.orders[i].orderNum;
+    }
+    console.log(result);
 };
 
 var optionsKB = {
@@ -39,6 +59,8 @@ var optionsKB = {
         'Accept':'application/sparql-results+json,*/*;q=0.9'
     }
 };
+
+
 
 //function to make query to the fuseki server
 function fuseki(type,query){
@@ -100,6 +122,7 @@ app.get('/', function(req,res){
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/plain');
         res.end('\nI am the Order Class taking care of the Orders.');
+        console.log(orders.length)
         for(var i=0; i<orders.length ; i ++) {
                 console.log(orders[i]);
         }
@@ -119,39 +142,13 @@ app.post('/updateOrder', function(req,res){
         console.log('Updated Order');
         var fieldvalues =  req.body;
        // console.log(fieldvalues);
-
-    console.log(fieldvalues.data[0].Name);
+    console.log('FieldValues: ',fieldvalues.data);
+    console.log('FieldValues length: ',fieldvalues.data.length);
 
         for(var i=0; i<fieldvalues.data.length ; i++) {
 
-            // CREATING THE ORDER IN THE KNOWLEDGE BASE
-            var j =i+1;
-            query = sparqlgen.createInstance("Order");
-            console.log(query);
-            fuseki("update", query);
-            var query1=sparqlgen.createInstanceProperty("Order_"+j,"hasCustomerName",fieldvalues.data[i].Name);
-            fuseki("update",query1);
-            var query2=sparqlgen.createInstanceProperty("Order_"+j,"hasAddress",fieldvalues.data[i].Address);
-            fuseki("update",query2);
-            var query3=sparqlgen.createInstanceProperty("Order_"+j,"hasPhone",fieldvalues.data[i].Phone);
-            fuseki("update",query3);
-            var query4=sparqlgen.createInstanceProperty("Order_"+j,"hasFrameType",fieldvalues.data[i].FrameType);
-            fuseki("update",query4);
-            var query5=sparqlgen.createInstanceProperty("Order_"+j,"hasFrameColour",fieldvalues.data[i].FrameColour);
-            fuseki("update",query5);
-            var query6=sparqlgen.createInstanceProperty("Order_"+j,"hasKeyboardType",fieldvalues.data[i].KeyboardType);
-            fuseki("update",query6);
-            var query7=sparqlgen.createInstanceProperty("Order_"+j,"hasKeyboardColour",fieldvalues.data[i].KeyboardColour);
-            fuseki("update",query7);
-            var query8=sparqlgen.createInstanceProperty("Order_"+j,"hasScreenType",fieldvalues.data[i].ScreenType);
-            fuseki("update",query8);
-            var query9=sparqlgen.createInstanceProperty("Order_"+j,"hasScreenColour",fieldvalues.data[i].ScreenColour);
-            fuseki("update",query9);
-            var query10=sparqlgen.createInstanceProperty("Order_"+j,"hasOrderQuantity",fieldvalues.data[i].Quantity);
-            fuseki("update",query10);
 
-
-
+            var orderno = fieldvalues.data[i].OrderNumber;
             var name = fieldvalues.data[i].Name;
             var address = fieldvalues.data[i].Address;
             var Phone = fieldvalues.data[i].Phone;
@@ -163,13 +160,43 @@ app.post('/updateOrder', function(req,res){
             var ScreenColour = fieldvalues.data[i].ScreenColour;
             var Quantity = fieldvalues.data[i].Quantity;
 
-            orders.push(new Order(num_orders, name, address, Phone, FrameType, FrameColour, KeyboardType, KeyboardColour, ScreenType, ScreenColour, Quantity ));
-            num_orders++;
+
+            var ord =new Order(orderno, name, address, Phone, orders);
+            for(var j =0; j<Quantity; j++) {
+                ord.addProduct(new product.Product(FrameType, FrameColour, ScreenType, ScreenColour, KeyboardType, KeyboardColour));
+            }
+            orders.push(ord);
         }
 
 
 
-});
+})
+
+
+//POLLING MECHANISM TO CHECK FOR NEW ORDERS
+setInterval(function () {     //set interval function
+    var query = sparqlgen.checkOrder(product_num);
+
+            functions.fuseki("query", query, function(product_status){
+               product_status_= product_status
+            });
+
+    }, 10000);
+
+//POLLING MECHANISM TO CARRY OUT TASKS ONCE NEW ORDER HAS BEEN DETECTED
+setInterval(function () {     //set interval function
+    console.log('Global Status: ',product_status_);
+    if(product_status_ == true){
+
+
+        product_status_=false;
+        product_num++;
+
+
+
+    }
+}, 3000);
+
 
 
 app.listen(8000, function(){

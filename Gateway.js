@@ -1,12 +1,16 @@
 /**
  * Created by Joe David on 21-11-2017.
  */
-const http = require('http');
-const request = require('request');
-const gatewayHost = '127.0.0.1'; //The local host IP.
-const gatewayPort = 4500;
+var express = require('express');
+var bodyParser = require('body-parser');
+var app = express();
+var request = require('request');
 var formidable = require('formidable');
 var sparqlgen = require('./SPARQLGen');
+var functions = require('./Functions');
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //Forming the parameters for the request as a JSON
 //This structure will be used and updated to form valid call - url and body will be replaced.
@@ -20,44 +24,9 @@ var options = {
     }
 };
 
-/**
- *
- * @param data - has the following format
- * { url: <the url of the service>,
- *   payload: <the payload message to POST to the service of the url>
- * }
- * @param res - where to send response
- */
-function callRESTService(data, res){
 
-    //Getting and updating the data for the further request
-    var url = data.url;
-    console.log("url:" + url); //Just prining out the URL to be invoked.
-    var payload = data.payload;
-    var type = data.type;
-
-    options.url = url;
-    options.body = payload;
-    options.headers = {'Content-Type' : type};
-
-    //Forward further the HTTP POST request AND return the result to the orginal source of the request.
-    request(options, function (err, res2, body) {
-        if (err) {
-            console.log('Error :', err);
-            return;
-        }
-        console.log(' Body :', body);
-
-        //Note, using the res object passed to the callRESTService method. So, the gateway will sent back the result of operation.
-        res.statusCode = 200;
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify(body));
-    });
-
-}
-
-const gatewayServer = http.createServer(function(req, res) {
+app.use(function (req, res, next) {
+    console.log(req.method);
     var method = req.method;
     console.log("Method: " + method);
 
@@ -82,28 +51,73 @@ const gatewayServer = http.createServer(function(req, res) {
 
     else if(method == 'POST'){
         //Handle POST method.
-        var body = [];
-        var abc=[];
-        var fieldvalues = [];   //Array to hold the values of the fields in the form
-     //   query = sparqlgen.createInstance("Order");
-      //  console.log(query);
+         //Array to hold the values of the fields in the form
+        //   query = sparqlgen.createInstance("Order");
+        //  console.log(query);
+     //   console.log('Req body: ',req.body)
+        var fieldvalues =  req.body;
+       console.log('Fieldvalues ',fieldvalues.data);
+        var k=0;
+        for(var i=0; i<fieldvalues.data.length ; i++) {
 
-        new formidable.IncomingForm().parse(req).on('field', function (name, value) { //in the event a field in the form is encountered
-            fieldvalues.push(value);    //storing the field values in an array
-        })
-            .on('end', function () { //in the event of end of the form data
-                console.log(fieldvalues);
+            //CREATING THE ORDER IN THE KNOWLEDGE BASE
+            for (var j = 0; j < fieldvalues.data[i].Quantity; j++) {
+                ++k;
 
 
-            });
+                query = sparqlgen.createInstance("Product");
+                //console.log(query);
+                functions.fuseki("update", query);
+                var query0 = sparqlgen.createInstanceProperty("Product_" + k, "belongstoOrder", fieldvalues.data[i].OrderNumber);
+                functions.fuseki("update", query0);
+                var query1 = sparqlgen.createInstanceProperty("Product_" + k, "hasCustomerName", fieldvalues.data[i].Name);
+                functions.fuseki("update", query1);
+                var query2 = sparqlgen.createInstanceProperty("Product_" + k, "hasAddress", fieldvalues.data[i].Address);
+                functions.fuseki("update", query2);
+                var query3 = sparqlgen.createInstanceProperty("Product_" + k, "hasPhone", fieldvalues.data[i].Phone);
+                functions.fuseki("update", query3);
+                var query4 = sparqlgen.createInstanceProperty("Product_" + k, "hasFrameType", fieldvalues.data[i].FrameType);
+                functions.fuseki("update", query4);
+                var query5 = sparqlgen.createInstanceProperty("Product_" + k, "hasFrameColour", fieldvalues.data[i].FrameColour);
+                functions.fuseki("update", query5);
+                var query6 = sparqlgen.createInstanceProperty("Product_" + k, "hasKeyboardType", fieldvalues.data[i].KeyboardType);
+                functions.fuseki("update", query6);
+                var query7 = sparqlgen.createInstanceProperty("Product_" + k, "hasKeyboardColour", fieldvalues.data[i].KeyboardColour);
+                functions.fuseki("update", query7);
+                var query8 = sparqlgen.createInstanceProperty("Product_" + k, "hasScreenType", fieldvalues.data[i].ScreenType);
+                functions.fuseki("update", query8);
+                var query9 = sparqlgen.createInstanceProperty("Product_" + k, "hasScreenColour", fieldvalues.data[i].ScreenColour);
+                functions.fuseki("update", query9);
+                var query10 = sparqlgen.createInstanceProperty("Product_" + k, "hasPalletID", "0");
+                functions.fuseki("update", query10);
+                var query11 = sparqlgen.createInstanceProperty("Product_" + k, "isAtWS", "pending");
+                functions.fuseki("update", query11);
+                var query12 = sparqlgen.createInstanceProperty("Product_" + k, "isAtZone", "pending");
+                functions.fuseki("update", query12);
 
-       console.log(abc);
+            }
+        }
+            // new formidable.IncomingForm().parse(req).on('field', function (name, value) { //in the event a field in the form is encountered
+        //     fieldvalues.push(value);    //storing the field values in an array
+        // })
+        //     .on('end', function () { //in the event of end of the form data
+        //         console.log(fieldvalues);
+        //
+        //
+        //     });
+
+       // console.log(abc);
+
     }
 });
 
+// const gatewayServer = http.createServer(function(req, res) {
 
-gatewayServer.listen(gatewayPort, gatewayHost, () => {
-    console.log(`Gateway server is running at http://${gatewayHost}:${gatewayPort}/`);
+// });
+
+
+app.listen(4500, () => {
+    console.log(`Gateway server is running at http://127.0.0.1:4500/`);
 });
 
 
