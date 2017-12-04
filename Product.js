@@ -11,7 +11,7 @@ var bin = '0b01'
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-var product= function (frameType,  frameColour, screenType,screenColour,keyboardType,keyboardColour,palletID, palletnumber) {
+var product= function (frameType,  frameColour, screenType,screenColour,keyboardType,keyboardColour, palletnumber) {
     this.frame = false;
     this.keyboard = false;
     this.screen = false;
@@ -22,16 +22,22 @@ var product= function (frameType,  frameColour, screenType,screenColour,keyboard
     this.hasScreenColour = screenColour;
     this.hasKeyboardType = keyboardType;
     this.hasKeyboardColour = keyboardColour;
-    this.hasPalletID = palletID;
-    this.orderNumber = 0;
+    this.hasPalletID = 0;
     this.isAtWS = 7;
     this.isAtZone = 3;
-    this.currentneed  = 'paper'
+    this.currentneed  = 'paper';
 };
 
-product.prototype.currentneed = function (ws,zone1,zone2) {
+product.prototype.retcurrentneed = function () {
 
 return this.currentneed;
+
+};
+
+product.prototype.updateLocation = function (ws,zone) {
+    this.isAtWS = ws;
+    this.isAtZone = zone;
+
 
 };
 

@@ -12,14 +12,13 @@ var setValue;
 var query1 = "query=PREFIX iii:<http://www.manufacturing.com/cellphones.owl#> SELECT* WHERE{iii:conveyor_1 iii:transZone45 ?url}";
 
 //define query for the Knowledge base
-var optionsKB = {
+var optionsUpdatepalletID = {
     method: 'post',
     body: " ",
-    //json: true, // Use,If you are sending JSON data
-    url: "http://127.0.0.1:3032/iii2017/query",
+    json: true, // Use,If you are sending JSON data
+    url: "http://127.0.0.1:8000/updateProduct",
     headers: {
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'Accept':'application/sparql-results+json,*/*;q=0.9'
+        'Content-Type': 'text/plain'
     }
 };
 
@@ -33,6 +32,8 @@ var optionsOrchestrator = {
         'Content-Type': 'text/plain'
     }
 };
+
+
 
 function fuseki(type,query,callback){
 
@@ -131,7 +132,7 @@ var workstation= function (wsnumber, capability,zone1neighbor,zone2neighbor,zone
     this.port  = 1234;
     this.robotUrl = robotUrl;
     this.conveyorUrl = conveyorUrl;
-    this.url = '127.0.0.1'
+    this.url = '127.0.0.1';
     this.status = 'free';
 };
 
@@ -154,12 +155,40 @@ workstation.prototype.runServer = function (port)
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
 
+    //EXECUTE ROUTE FOR EVERY WORKSTATION
+    app.post('/execute/', function (req, res) {
+
+
+       if(ref1.wsnumber == 7){
+            optionsOrchestrator.body =  "http://"+ref1.robotUrl+"/RTU/SimROB"+ref1.wsnumber+"/services/LoadPallet";
+       }
+        console.log(optionsOrchestrator.body);
+        request(optionsOrchestrator, function(err){
+            if(!err) {
+                console.log('Load Pallet Command Issued by ' + ref1.wsnumber);
+            }
+
+            else{
+                console.log('Error issuing Load Pallet Command');
+            }
+        });
+
+    });
+
     //HANDLE NOTIFICATION FROM THE FASTORY SIMULATOR
     app.post('/notifs/', function (req, res) {
         console.log(req.body);
+        var PalletID = req.body.payload.PalletID;
         switch (req.body.id) {
+
+
+
             case "Z1_Changed":
-                console.log(req.body.results);
+
+                if( PalletID != -1){
+
+
+                }
                // callNext(query1);
                 break;
             case "Z2_Changed":
@@ -168,46 +197,44 @@ workstation.prototype.runServer = function (port)
 
                     //var id = req.body.id;
                     //var senderID = 'SimROB7';
-                    var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
-                    console.log('Subject: ', subject);
-                    var getNeighQuery = sparqlgen.getNeighbourQuery(subject,"hasNeighbour");    //gets query to find the neighbour of current location
-                    console.log('getNeighQuery: ', getNeighQuery);
-                    fuseki("query",getNeighQuery,function(neighbour){
-                        console.log('From function call: ', neighbour);
-                        var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                        console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
-                        fuseki("query",reachNeighLinkQuery, function(link){
-                            console.log('link: ', link);
-                            optionsOrchestrator.body=link;
-                            request(optionsOrchestrator,function (err, res, body){
-                                if(err){
-                                    console.log('Error sending invoke  command to the orchestrator');
-                                }
-
-                            });
-                        });
-
-                    });    //queries the fuseki with the query obtained in the previous step to obtain neighnour
-
-
-
-
-
-
-
-
-
-
-
-
-
+                      //queries the fuseki with the query obtained in the previous step to obtain neighnour
 
                 break;
             case "Z4_Changed":
                 break;
             case "Z5_Changed":
                 break;
-            case "PalletLoaded"://update PalletID to the first product in OrderClass
+            case "PalletLoaded"://update PalletID to the first product in OrderClass`
+                var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
+                console.log('Subject: ', subject);
+                var getNeighQuery = sparqlgen.getNeighbourQuery(subject,"hasNeighbour");    //gets query to find the neighbour of current location
+                console.log('getNeighQuery: ', getNeighQuery);
+                fuseki("query",getNeighQuery,function(neighbour){
+                    console.log('From function call: ', neighbour);
+                    var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                    console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
+                    fuseki("query",reachNeighLinkQuery, function(link){
+                        console.log('link: ', link);
+                        optionsOrchestrator.body=link;
+                        request(optionsOrchestrator,function (err, res, body){
+                            if(err){
+                                console.log('Error sending invoke  command to the orchestrator');
+                            }
+
+                        });
+                    });
+
+                });
+                optionsUpdatepalletID.body =req.body.payload.PalletID;
+                request(optionsUpdatepalletID, function(err){
+                    if(err){
+                        console.log('Error requesting to update Pallet ID');
+                    }
+                    else{
+                        console.log('Successfully requested to update Pallet');
+                    }
+
+                })
         }
     });
 
@@ -238,6 +265,12 @@ workstation.prototype.runServer = function (port)
     }
 };
 
+workstation.prototype.execute = function (){
+
+};
+
+
+
 function subscriptions() {
 
     request.post('http://localhost:3000/RTU/SimROB7/events/PalletLoaded/notifs', {form: {destUrl: "http://localhost:6007/notifs/"}}, function (err) {if (err) {} else{ console.log('subscribed to pallet load');}});
@@ -252,7 +285,7 @@ var ws3 = new workstation(3,'blue','','','','','192.168.3.1','192.168.3.2');
 var ws4 = new workstation(4,'green','','','','','192.168.4.1','192.168.4.2');
 var ws5 = new workstation(5,'red','','','','','192.168.5.1','192.168.5.2');
 var ws6 = new workstation(6, 'blue','','','','','192.168.6.1','192.168.6.2');
-var ws7 = new workstation(7,'loadpallet','zone_2_7','zone_3_7','zone_5_7','NILL','127.0.0.1','127.0.0.1');
+var ws7 = new workstation(7,'loadpallet','zone_2_7','zone_3_7','zone_5_7','NILL','127.0.0.1:3000','127.0.0.1:3000');
 var ws8 = new workstation(8,'green','','','','','192.168.8.1','192.168.8.2');
 var ws9 = new workstation(9, 'red','','','','','192.168.9.1','192.168.9.2');
 var ws10 = new workstation(10, 'blue','','','','','192.168.10.1','192.168.10.2');
@@ -272,3 +305,4 @@ ws9.runServer(6009);
 ws10.runServer(6010);
 ws11.runServer(6011);
 ws12.runServer(6012);
+

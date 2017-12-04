@@ -2,15 +2,15 @@
  * Created by Joe David on 22-11-2017.
  */
 const prefix_iii = "PREFIX iii:<http://www.manufacturing.com/ontology.owl#>";
-order_inst=1;
+product_inst=1;
 
 module.exports = {
 
     //FUNCTION CREATE INSTANCE OF CLASS/SUBCLASS
     createInstance: function (classname) {
 
-    var query = "update= "+ prefix_iii +  " INSERT DATA {iii:"+classname+"_"+order_inst+" a iii:"+classname+".}";
-        order_inst++;
+    var query = "update= "+ prefix_iii +  " INSERT DATA {iii:"+classname+"_"+product_inst+" a iii:"+classname+".}";
+        product_inst++;
     return query;
     },
     //FUNCTION TO CREATE PROPERTIES OF INSTANCES OF CLASS/SUBCLASS
@@ -30,7 +30,12 @@ module.exports = {
     },
 
     checkOrder: function(product_num){
-        var query = "query= "+ prefix_iii +  " ASK{ iii:product_"+product_num+" a iii:Product.}";
+        var query = "query= "+ prefix_iii +  " ASK{ iii:Product_"+product_num+" a iii:Product.}";
+        return query;
+    },
+
+    updateProperty: function(subject, predicate, object){
+        var query = "update= "+ prefix_iii +  " DELETE{ iii:"+subject+" iii:"+predicate+" ?o. } INSERT { iii:"+subject+" iii:"+predicate+" "+object+"} WHERE { iii:"+subject+" iii:"+predicate+" ?o. }";
         return query;
     },
 };

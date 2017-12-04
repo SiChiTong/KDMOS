@@ -8,6 +8,7 @@ var request = require('request');
 var formidable = require('formidable');
 var sparqlgen = require('./SPARQLGen');
 var functions = require('./Functions');
+var k=0;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -57,7 +58,7 @@ app.use(function (req, res, next) {
      //   console.log('Req body: ',req.body)
         var fieldvalues =  req.body;
        console.log('Fieldvalues ',fieldvalues.data);
-        var k=0;
+
         for(var i=0; i<fieldvalues.data.length ; i++) {
 
             //CREATING THE ORDER IN THE KNOWLEDGE BASE
@@ -66,7 +67,7 @@ app.use(function (req, res, next) {
 
 
                 query = sparqlgen.createInstance("Product");
-                //console.log(query);
+                console.log(query);
                 functions.fuseki("update", query);
                 var query0 = sparqlgen.createInstanceProperty("Product_" + k, "belongstoOrder", fieldvalues.data[i].OrderNumber);
                 functions.fuseki("update", query0);
@@ -94,6 +95,8 @@ app.use(function (req, res, next) {
                 functions.fuseki("update", query11);
                 var query12 = sparqlgen.createInstanceProperty("Product_" + k, "isAtZone", "pending");
                 functions.fuseki("update", query12);
+                var query13 = sparqlgen.createInstanceProperty("Product_" + k, "hasCurrentNeed", "paper");
+                functions.fuseki("update", query13);
 
             }
         }

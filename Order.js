@@ -11,11 +11,13 @@ var parseXml = require('xml2js').parseString;
 var product = require('./Product.js');
 var functions = require('./Functions');
 var product_num=1;
+var product_num_ =1;
 var product_status_ = false;
 
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.text());
 
 var Order= function(orderNumber, customerName, customerAddress, customerPhone, orders) {
     this.orderNumber = orderNumber;
@@ -30,8 +32,8 @@ var Order= function(orderNumber, customerName, customerAddress, customerPhone, o
 Order.prototype.addProduct = function(product) {
     this.products.push(product);
 };
-
-Order.prototype.getOrderInfo = function() {
+//function to update order with palletID
+Order.prototype.getOrderInfo = function(palletID) {
     //TODO
     var result = '';
     for(var i = 0; i<this.products.length; i++){
@@ -40,14 +42,48 @@ Order.prototype.getOrderInfo = function() {
     return result;
 };
 
-Order.prototype.listAllOrders = function() {
-    //TODO
-    var result = '';
-    for(var i = 0; i<this.orders.length; i++){
-        result = result + '\nOrder: ' + this.orders[i].orderNum;
+//Updates Order with palletID in KB and Class objects
+function updateProduct(palletID) {
+
+
+    for(var i = 0; i<orders.length; i++){
+        for(var j = 0; j<orders[i].products.length; j++){
+            if (orders[i].products[j].hasPalletID == 0){
+                orders[i].products[j].hasPalletID = palletID;
+                var query = sparqlgen.updateProperty("Product_" + product_num_, "hasPalletID",JSON.stringify(palletID));
+                functions.fuseki("update", query);
+                product_num_++;
+                return;
+            }
+
+        }
     }
-    console.log(result);
+
 };
+
+function listAllOrders() {
+    console.log('DEBUG POINT2');
+    console.log('Order Length', orders.length);
+
+    for(var i = 0; i<orders.length; i++){
+        console.log(orders[i].orderNumber);
+        console.log('\n'+orders[i].customerName);
+        for(var j = 0; j<orders[i].products.length; j++){
+            console.log(orders[i].products[j].hasPalletID)
+        }
+        console.log('\n\n');
+    }
+
+}
+
+// Order.prototype.listAllOrders = function() {
+//     //TODO
+//     var result = '';
+//     for(var i = 0; i<this.orders.length; i++){
+//         result = result + '\nOrder: ' + this.orders[i].orderNum;
+//     }
+//     console.log(result);
+// };
 
 var optionsKB = {
     method: 'post',
@@ -166,11 +202,30 @@ app.post('/updateOrder', function(req,res){
                 ord.addProduct(new product.Product(FrameType, FrameColour, ScreenType, ScreenColour, KeyboardType, KeyboardColour));
             }
             orders.push(ord);
+
         }
 
 
 
-})
+});
+
+app.post('/getProductDetails', function(req,res){
+
+
+
+});
+
+app.post('/updateProduct', function(req,res){
+    console.log('Pallet ID: ',req.body)
+    var palletID = req.body;
+    updateProduct(palletID, function(){
+
+    });
+    console.log('DEbugg');
+
+    res.end();
+});
+
 
 
 //POLLING MECHANISM TO CHECK FOR NEW ORDERS
@@ -178,16 +233,17 @@ setInterval(function () {     //set interval function
     var query = sparqlgen.checkOrder(product_num);
 
             functions.fuseki("query", query, function(product_status){
+                console.log(query);
                product_status_= product_status
             });
-
+    listAllOrders();
     }, 10000);
 
 //POLLING MECHANISM TO CARRY OUT TASKS ONCE NEW ORDER HAS BEEN DETECTED
 setInterval(function () {     //set interval function
     console.log('Global Status: ',product_status_);
     if(product_status_ == true){
-
+        request.post('http://127.0.0.1:6007/execute');
 
         product_status_=false;
         product_num++;
@@ -195,6 +251,7 @@ setInterval(function () {     //set interval function
 
 
     }
+
 }, 3000);
 
 

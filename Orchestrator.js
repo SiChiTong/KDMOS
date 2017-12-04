@@ -124,14 +124,12 @@ app.get('/', function (req, res) {
 app.post('/invokeService',function (req,res) {
     console.log('Received invoke command from the Workstation Class: ', req.body);
     optionsSim.url = JSON.parse(req.body);
-    console.log("DEBUG 2",optionsSim.url);
+    console.log("DEBUG 2: ",optionsSim.url);
     request(optionsSim, function(err,res){
         if(err){
             console.log('Error from Orchestrator: Error Invoking service on the line');
             console.log(res);
         }
-
-
     });
     res.end();
 
@@ -180,6 +178,7 @@ app.post('/events', function (req,res){
 app.listen(6500, function()
 {
     console.log('Orchestrator running on port 6500');
+
 });
 
 //subscribing for the data

@@ -1,5 +1,6 @@
 var array = [];
 var i=1;
+var j =1;
 
 
 $(document).ready(function(){ //to prevent any jQuery code from running before the document is finished loading (is ready).
@@ -21,7 +22,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
 
     $(".add-row").click(function(){
         var data = {
-            OrderNumber: i,
+            OrderNumber: j,
             Name : $("#name").val(),
             Address : $("#Address").val(),
             Phone : $("#Phone").val(),
@@ -55,12 +56,13 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
 
         if ($("#Name").val()!="" && $("#Address").val()!="" && $("#Phone").val()!="") {
             $("table tbody").append(markup);
-            $("#Name").val("");
+            $("#name").val("");
             $("#Address").val("");
             $("#Phone").val("");
-            $("#Name").attr("placeholder", "Enter your full name");
+            $("#name").attr("placeholder", "Enter your full name");
             $("#Address").attr("placeholder", "your Address Here");
             $("#Phone").attr("placeholder", "Your Phone Number");
+            j++;
         }
         else{
 
@@ -78,7 +80,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
             }
         }
 
-        i++;
+
 
     });
 
@@ -96,12 +98,14 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
         makeAjaxCall(
             'http://127.0.0.1:8000/updateOrder', //SENDS DATA TO THE ORDER CLASS(CREATES ORDER OBJECT AND UPDATES KB)
             makeAjaxCall(
-                'http://127.0.0.1:4500', // ot the Gateway
-                function() {}
+                'http://127.0.0.1:4500', // to the Gateway
+                function() {
+
+                }
             )
         );
 
-
+        array= [];
         console.log(array)
 
 
@@ -112,6 +116,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
         $("table tbody").find('input[name="record"]').each(function(i){
 
             if($(this).is(":checked")){
+                j--
                 $(this).parents("tr").remove();
                 array[i].deleted = true;
             }
