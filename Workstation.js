@@ -34,7 +34,7 @@ var optionsOrchestrator = {
 };
 
 
-function fuseki(type, query, k, callback) {
+function fuseki(type, query, tempgoal, callback) {
 
     var optionsKB = {
         method: 'post',
@@ -59,20 +59,65 @@ function fuseki(type, query, k, callback) {
             //console.log(body);
             console.log('DEBUG 0:', query);
             console.log(body);
+
             if (query.includes("variable")) {
-                str = body.results.bindings[k].variable.value;
+                var count  = body.results.bindings.length;
+                console.log('DEBUG X', count);
+                if(count>1){
+                    var neighbours = [];
+                    for(var i=0; i<count;i++) {
+
+                        // console.log('DEBUG Z', body.results);
+                        // console.log('DEBUG A', body.results.bindings[count]);
+                            var temp = body.results.bindings[i].variable.value;
+                        console.log('DEBUG Y', temp);
+                        if (temp.includes("#")) {
+                            neighbours.push(temp.split("#")[1]);
+                            console.log('DEBUG ZZ:', neighbours);
+                        }
+                    }
+                    for (var j=0;j<neighbours.length;j++){
+                        console.log('DEBUG: ENTERING SECOND FOR LOOP:', j);
+                        var neigh = neighbours[j];
+                        console.log('FROM second loop neighbourslist', neigh);
+                        var query_ = sparqlgen.getNeighbourQuery(neigh,"hasNeighbour");
+                        console.log('FROM second loop query_', query_);
+                        console.log('FROM second loop tempgoal', tempgoal);
+                        functions.fuseki("query", query_, function (neighbour) {
+                            console.log('debug k: ', neighbour);
+                        if(neighbour == tempgoal){
+                            result= neigh;
+
+                        }
+                        });
+
+
+                    }
+                }
+                else {
+                    console.log('DEBUG L: ',body.results.bindings[0]);
+                    str = body.results.bindings[0].variable.value;
+                    if (str.includes("#")) {
+                        result = str.split("#")[1];
+                    }
+                    else {
+                        result = str;
+                    }
+                }
             }
             else if (query.includes("currentneed")) {
-                str = body.results.bindings[k].currentneed.value;
+                console.log(body.results.bindings[0]);
+                str = body.results.bindings[0].currentneed.value;
+                result =str;
             }
 
-
-            if (str.includes("#")) {
-                result = str.split("#")[1];
-            }
-            else {
-                result = str;
-            }
+            console.log('DEBUG B: ',str);
+            // if (str.includes("#")) {
+            //     result = str.split("#")[1];
+            // }
+            // else {
+            //     result = str;
+            // }
 
             console.log("From function:", result);
             callback(result);
@@ -176,6 +221,14 @@ workstation.prototype.runServer = function (port) {
     app.post('/notifs/', function (req, res) {
         console.log(req.body);
         var PalletID = req.body.payload.PalletID;
+        var ws = req.body.senderID.split("V")[1];
+        console.log('~~~~~~~ws: ', ws);
+        var temp = parseInt(ws);
+        console.log('~~~~~~~temp: ', temp);
+        var next_ws;
+        temp < 12? next_ws= temp+1: next_ws=1;
+        console.log('~~~~~~~next_ws: ', next_ws);
+        var zone = req.body.id.split("")[1];
         console.log('DEBUG POINT 11111111');
         switch (req.body.id) {
 
@@ -187,17 +240,17 @@ workstation.prototype.runServer = function (port) {
                     console.log(PalletID);
                     var query = sparqlgen.getProductDetail(PalletID, "currentneed");
                     console.log(query)
-                    fuseki("query", query, 0, function (need) {
+                    fuseki("query", query, '', function (need) {
                         console.log('From function call, need: ', need);
                         var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
                         console.log('Subject: ', subject);
                         var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
                         console.log('getNeighQuery: ', getNeighQuery);
                         if ((need == 'paper') || (need == 'unload')) {
-                            fuseki("query", getNeighQuery, 0, function (neighbour) {
+                            fuseki("query", getNeighQuery, 'zone_1_'+next_ws, function (neighbour) {
                                 var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
                                 console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
-                                fuseki("query", reachNeighLinkQuery, 0, function (link) {
+                                fuseki("query", reachNeighLinkQuery, '', function (link) {
                                     console.log('link: ', link);
                                     optionsOrchestrator.body = link;
                                     request(optionsOrchestrator, function (err, res, body) {
@@ -235,11 +288,11 @@ workstation.prototype.runServer = function (port) {
                 console.log('Subject: ', subject);
                 var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
                 console.log('getNeighQuery: ', getNeighQuery);
-                fuseki("query", getNeighQuery, 0, function (neighbour) {
+                fuseki("query", getNeighQuery, '', function (neighbour) {
                     console.log('From function call: ', neighbour);
                     var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
                     console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
-                    fuseki("query", reachNeighLinkQuery, 0, function (link) {
+                    fuseki("query", reachNeighLinkQuery, '', function (link) {
                         console.log('link: ', link);
                         optionsOrchestrator.body = link;
                         request(optionsOrchestrator, function (err, res, body) {
