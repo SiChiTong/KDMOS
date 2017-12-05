@@ -64,59 +64,80 @@ function fuseki(type, query, tempgoal, callback) {
                // str = body.results.bindings[k].variable.value;
                 var count = body.results.bindings.length;
                 if (count >1){
-                    var neighbours = [];
-                    var neigh;
-                    for(var i=0; i<count;i++) {
+                    if (query.includes("hasLinkDest")){
+                        var links = [];
+                        for (var i = 0; i < count; i++) {
 
-                        // console.log('DEBUG Z', body.results);
-                        // console.log('DEBUG A', body.results.bindings[count]);
-                        var temp = body.results.bindings[i].variable.value;
-                        console.log('DEBUG Y', temp);
-                        if (temp.includes("#")) {
-                            neighbours.push(temp.split("#")[1]);
-                            console.log('DEBUG ZZ:', neighbours);
+                            links.push(body.results.bindings[i].variable.value);
+                            console.log('DEBUG Y', temp);
+                        }
+                        var link_1 =  links[0];
+                        var link_2 = links[1];
+                        if(link_1.includes('TransZone'+tempgoal)){
+                            result = link_1;
+                            callback(result);
+                        }
+                        else if(link_2.includes('TransZone'+tempgoal)){
+                            result = link_2;
+                            callback(result);
                         }
                     }
-                    var neigh_1= neighbours[0];
-                    var neigh_2= neighbours[1];
-                    var query_1 = sparqlgen.getNeighbourQuery(neigh_1, "hasNeighbour");
-                    var query_2 = sparqlgen.getNeighbourQuery(neigh_2, "hasNeighbour");
-                    functions.fuseki("query", query_1, function (neighbour) {
-                        if (neighbour == tempgoal) {
-                            result = neigh_1;
-                            callback(result);
+                    else
+                    {
+                        var neighbours = [];
+                        var neigh;
+                        for (var i = 0; i < count; i++) {
+
+                            // console.log('DEBUG Z', body.results);
+                            // console.log('DEBUG A', body.results.bindings[count]);
+                            var temp = body.results.bindings[i].variable.value;
+                            console.log('DEBUG Y', temp);
+                            if (temp.includes("#")) {
+                                neighbours.push(temp.split("#")[1]);
+                                console.log('DEBUG ZZ:', neighbours);
+                            }
                         }
+                        var neigh_1 = neighbours[0];
+                        var neigh_2 = neighbours[1];
+                        var query_1 = sparqlgen.getNeighbourQuery(neigh_1, "hasNeighbour");
+                        var query_2 = sparqlgen.getNeighbourQuery(neigh_2, "hasNeighbour");
+                        functions.fuseki("query", query_1, function (neighbour) {
+                            if (neighbour == tempgoal) {
+                                result = neigh_1;
+                                callback(result);
+                            }
 
                         })
-                    functions.fuseki("query", query_2, function (neighbour) {
-                        if (neighbour == tempgoal) {
-                            result = neigh_2;
-                            callback(result);
-                        }
-                    })
-                    // for (var j=0;j<neighbours.length;j++){
-                    // do {
-                    //     console.log('DEBUG: ENTERING SECOND FOR LOOP:', j);
-                    //     neigh = neighbours[j];
-                    //     console.log('FROM second loop neighbourslist', neigh);
-                    //     var query_ = sparqlgen.getNeighbourQuery(neigh, "hasNeighbour");
-                    //
-                    //     console.log('FROM second loop query_', query_);
-                    //     console.log('FROM second loop tempgoal', tempgoal);
-                    //     functions.fuseki("query", query_, function (neighbour) {
-                    //         console.log('debug k: ', neighbour);
-                    //         if (neighbour == tempgoal) {
-                    //             console.log('entered tempgoal if statement with neigbour:' + neighbour + ' and tempgoal ' + tempgoal + 'J:' + j + 'neigh: ' + neigh);
-                    //             result = neigh;
-                    //             console.log("From functionW:", result);
-                    //             callback(result);
-                    //
-                    //
-                    //         }
-                    //
-                    //     });
-                    //     j++
-                    //     } while(j<neighbours.length);
+                        functions.fuseki("query", query_2, function (neighbour) {
+                            if (neighbour == tempgoal) {
+                                result = neigh_2;
+                                callback(result);
+                            }
+                        })
+                        // for (var j=0;j<neighbours.length;j++){
+                        // do {
+                        //     console.log('DEBUG: ENTERING SECOND FOR LOOP:', j);
+                        //     neigh = neighbours[j];
+                        //     console.log('FROM second loop neighbourslist', neigh);
+                        //     var query_ = sparqlgen.getNeighbourQuery(neigh, "hasNeighbour");
+                        //
+                        //     console.log('FROM second loop query_', query_);
+                        //     console.log('FROM second loop tempgoal', tempgoal);
+                        //     functions.fuseki("query", query_, function (neighbour) {
+                        //         console.log('debug k: ', neighbour);
+                        //         if (neighbour == tempgoal) {
+                        //             console.log('entered tempgoal if statement with neigbour:' + neighbour + ' and tempgoal ' + tempgoal + 'J:' + j + 'neigh: ' + neigh);
+                        //             result = neigh;
+                        //             console.log("From functionW:", result);
+                        //             callback(result);
+                        //
+                        //
+                        //         }
+                        //
+                        //     });
+                        //     j++
+                        //     } while(j<neighbours.length);
+                    }
                 }
 
                 else{
@@ -198,10 +219,11 @@ function fuseki(type, query, tempgoal, callback) {
 var workstation = function (wsnumber, capability, zone1neighbor, zone2neighbor, zone3neighbor, zone4neighbor, robotUrl, conveyorUrl) {
     this.wsnumber = wsnumber;
     this.capability = capability;
-    this.zone1neighbour = zone1neighbor;
-    this.zone2neighbour = zone2neighbor;
-    this.zone3neighbour = zone3neighbor;
-    this.zone4neighbour = zone4neighbor;
+    this.zone1status = 'free';
+    this.zone2status = 'free';
+    this.zone3status = 'free';
+    this.zone4status = 'free';
+    this.zone5status = 'free';
     this.port = 1234;
     this.robotUrl = robotUrl;
     this.conveyorUrl = conveyorUrl;
@@ -268,7 +290,7 @@ workstation.prototype.runServer = function (port) {
                     console.log('DEBUG POINT 333333333');
                     console.log(PalletID);
                     var query = sparqlgen.getProductDetail(PalletID, "currentneed");
-                    console.log(query)
+                    console.log(query);
                     fuseki("query", query, 0, function (need) {
                         console.log('From function call, need: ', need);
                         var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
@@ -292,6 +314,9 @@ workstation.prototype.runServer = function (port) {
 
                             })
                         }
+                        else{
+                            //GET IN THE WORKSTATION
+                        }
 
 
                     });
@@ -309,6 +334,24 @@ workstation.prototype.runServer = function (port) {
 
                 break;
             case "Z4_Changed":
+                if (PalletID != -1){
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
+                    fuseki("query", getNeighQuery, 0, function (neighbour) {
+                        var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                        fuseki("query", reachNeighLinkQuery, zone, function (link) {
+                            optionsOrchestrator.body = link;
+                            request(optionsOrchestrator, function (err, res, body) {
+                                if (err) {
+                                    console.log('Error sending invoke  command to the orchestrator');
+                                }
+
+                            });
+
+                        })
+
+                    });
+                }
                 break;
             case "Z5_Changed":
                 break;
