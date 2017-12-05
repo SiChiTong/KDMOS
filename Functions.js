@@ -28,7 +28,7 @@ module.exports = {
         }
         else{
             //PROCESS ID -> ZONE AND SENDER ID -> WORKSTATION HERE
-            workstation = senderID.substr(senderID.length - 1);
+            workstation = senderID.split("V")[1];;
             zone = id.charAt(1)
 
 

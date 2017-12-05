@@ -38,4 +38,11 @@ module.exports = {
         var query = "update= "+ prefix_iii +  " DELETE{ iii:"+subject+" iii:"+predicate+" ?o. } INSERT { iii:"+subject+" iii:"+predicate+" "+object+"} WHERE { iii:"+subject+" iii:"+predicate+" ?o. }";
         return query;
     },
+
+    getProductDetail: function(palletID,detail){
+        var query = "query= "+ prefix_iii +  " SELECT ?"+detail+" WHERE {?s iii:hasPalletID '"+palletID+"'. ?s iii:hasFrameType ?frametype. ?s iii:hasFrameColour ?framecolour. ?s iii:hasKeyboardType ?keyboardtype. ?s iii:hasKeyboardColour ?keyboardclour. ?s iii:hasScreenType ?screentype. ?s iii:hasScreenColour ?screencolour.  ?s iii:hasCurrentNeed ?currentneed.}";
+        return query;
+    },
+
+
 };
