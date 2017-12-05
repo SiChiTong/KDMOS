@@ -53,37 +53,34 @@ module.exports = {
         if (type == "query") {
             var result;
             optionsKB.url = "http://127.0.0.1:3032/iii2017/query";
-            if (query.includes("variable")) {
-                request(optionsKB, function (err, res, body) {
-                    if (err) {
-                        console.log('Error querying the knowledge base', err);
-                        return;
-                    }
+            request(optionsKB, function (err, res, body) {
+                if (err) {
+                    console.log('Error querying the knowledge base', err);
+                    return;
+                }
+                //console.log(body);
+                //     console.log(body);
+
+                // var str = body.results.bindings[0].variable.value;
+                // result = str.split("#")[1];
+                // console.log("From function:", result);
+                if (query.includes("SELECT")) {
+                    console.log('DEBUGXXX: body',body.results.bindings[0]);
                     var str = body.results.bindings[0].variable.value;
-                    if (str.includes("#")) {
+                    if (str.includes("#")){
                         result = str.split("#")[1];
                     }
-                    else {
-                        result = str;
-                        callback(result)
-                    }
-                    //console.log(body);
-                    //     console.log(body);
 
-                    // var str = body.results.bindings[0].variable.value;
-                    // result = str.split("#")[1];
-                    // console.log("From function:", result);
-
-
-                });
+                    callback(result);
+                }
                 if (query.includes("ASK")) {
-                    result = body.boolean;
-                    console.log('From Function', body.boolean);
+                    var result = body.boolean;
+                    console.log('From FunctionF', body.boolean);
                     callback(result);
                 }
 
-            }
 
+            });
 
         }
         else if (type == "update") {
