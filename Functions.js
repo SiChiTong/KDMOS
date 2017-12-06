@@ -11,8 +11,8 @@ module.exports = {
         var zone;
         var workstation;
         var subject;
-        if ((id == 'PalletLoaded') || (id == 'PalletUnloaded') || (id == 'Paperloaded')) {
-
+        if ((id == 'PalletLoaded') || (id == 'PalletUnloaded') || (id == 'PaperLoaded')) {
+            console.log('entered specific IF block')
             switch (id) {
                 case "PalletLoaded":
                 case "PalletUnloaded":
@@ -20,7 +20,7 @@ module.exports = {
                     zone = 3;
                     break;
 
-                case "Paperloaded":
+                case "PaperLoaded":
                     workstation = 1;
                     zone = 3;
                     break;
@@ -28,8 +28,14 @@ module.exports = {
         }
         else {
             //PROCESS ID -> ZONE AND SENDER ID -> WORKSTATION HERE
-            workstation = senderID.split("V")[1];
-            ;
+            if(senderID.includes("CNV")) {
+                console.log('1st IF BLOCK');
+                workstation = senderID.split("V")[1];
+            }
+            else if(senderID.includes("ROB")){
+                console.log('2nd IF BLOCK');
+                workstation = senderID.split("B")[1];
+            }
             zone = id.charAt(1)
 
 

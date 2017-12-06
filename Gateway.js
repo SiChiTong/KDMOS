@@ -89,7 +89,7 @@ app.use(function (req, res, next) {
                 functions.fuseki("update", query8);
                 var query9 = sparqlgen.createInstanceProperty("Product_" + k, "hasScreenColour", fieldvalues.data[i].ScreenColour);
                 functions.fuseki("update", query9);
-                var query10 = sparqlgen.createInstanceProperty("Product_" + k, "hasPalletID", "0");
+                var query10 = sparqlgen.createInstanceProperty("Product_" + k, "hasPalletID", "-1");
                 functions.fuseki("update", query10);
                 var query11 = sparqlgen.createInstanceProperty("Product_" + k, "isAtWS", "pending");
                 functions.fuseki("update", query11);

@@ -5,6 +5,7 @@ var request = require('request');
 var bodyParser = require('body-parser');
 var functions = require('./Functions');
 var sparqlgen = require('./SPARQLGen');
+var parseXml = require('xml2js').parseString;
 
 
 //define variables
@@ -168,6 +169,20 @@ function fuseki(type, query, tempgoal, callback) {
                     callback(result);
                 }
             }
+            else if (query.includes("frametype")) {
+                str = body.results.bindings[0].frametype.value;
+                console.log('STR: ',str);
+                if (str.includes("#")) {
+                    result = str.split("#")[1];
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+                else {
+                    result = str;
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+            }
 
 
 
@@ -188,15 +203,18 @@ function fuseki(type, query, tempgoal, callback) {
                 console.log('Error updating the knowledge base', err);
                 return;
             }
-            //console.log(body);
+            console.log('DEBUG99: ',body);
             parseXml(body, function (err, result) {
+                console.log('DEBUG100',result);
                 console.log(result.html.body[0].h1);
 
                 if (result.html.body[0].h1 == 'Success') {
                     console.log('Successful updation');
+                    callback();
                 }
                 else {
                     console.log("Error while performing updation");
+                    callback();
                 }
 
 
@@ -216,14 +234,19 @@ function fuseki(type, query, tempgoal, callback) {
 }
 
 
-var workstation = function (wsnumber, capability, zone1neighbor, zone2neighbor, zone3neighbor, zone4neighbor, robotUrl, conveyorUrl) {
+var workstation = function (wsnumber, equipment, zone1neighbor, zone2neighbor, zone3neighbor, zone4neighbor, robotUrl, conveyorUrl) {
     this.wsnumber = wsnumber;
-    this.capability = capability;
+    this.equip_with = equipment;
     this.zone1status = 'free';
     this.zone2status = 'free';
     this.zone3status = 'free';
     this.zone4status = 'free';
     this.zone5status = 'free';
+    this.zone1ID = -1;
+    this.zone2ID = -1;
+    this.zone3ID = -1;
+    this.zone4ID = -1;
+    this.zone5ID = -1;
     this.port = 1234;
     this.robotUrl = robotUrl;
     this.conveyorUrl = conveyorUrl;
@@ -274,7 +297,7 @@ workstation.prototype.runServer = function (port) {
     app.post('/notifs/', function (req, res) {
         console.log(req.body);
 
-        var PalletID = req.body.payload.PalletID;
+
         var ws = req.body.senderID.split("V")[1];
         var zone = req.body.id.split("")[1];
         var temp = parseInt(ws);
@@ -285,20 +308,29 @@ workstation.prototype.runServer = function (port) {
 
 
             case "Z1_Changed":
+                var PalletID = req.body.payload.PalletID;
+                var temp_goal
                 console.log('DEBUG POINT 2222222');
                 if (PalletID != -1) {
                     console.log('DEBUG POINT 333333333');
                     console.log(PalletID);
                     var query = sparqlgen.getProductDetail(PalletID, "currentneed");
                     console.log(query);
-                    fuseki("query", query, 0, function (need) {
+                    fuseki("query", query, '', function (need) {
                         console.log('From function call, need: ', need);
                         var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
                         console.log('Subject: ', subject);
                         var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
                         console.log('getNeighQuery: ', getNeighQuery);
                         if ((need == 'paper') || (need == 'unload')) {
-                            fuseki("query", getNeighQuery, 'zone_1_'+next_ws, function (neighbour) {
+
+                            temp_goal = 'zone_1_' + next_ws;
+                        }
+                        else{
+                            temp_goal = 'zone_3_' + ws;
+
+                        }
+                            fuseki("query", getNeighQuery, temp_goal, function (neighbour) {
                                 var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
                                 console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
                                 fuseki("query", reachNeighLinkQuery, '', function (link) {
@@ -308,26 +340,62 @@ workstation.prototype.runServer = function (port) {
                                         if (err) {
                                             console.log('Error sending invoke  command to the orchestrator');
                                         }
-
                                     });
                                 })
-
                             })
-                        }
-                        else{
-                            //GET IN THE WORKSTATION
-                        }
-
-
                     });
 
                 }
                 // callNext(query1);
                 break;
             case "Z2_Changed":
+
+                if(PalletID !=-1){
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
+                    fuseki("query", getNeighQuery, 0, function (neighbour) {
+                        var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                        fuseki("query", reachNeighLinkQuery, zone, function (link) {
+                            optionsOrchestrator.body = link;
+                            request(optionsOrchestrator, function (err, res, body) {
+                                if (err) {
+                                    console.log('Error sending invoke  command to the orchestrator');
+                                }
+
+                            });
+
+                        })
+
+                    });
+
+
+
+                }
                 break;
             case "Z3_Changed":
+                var PalletID = req.body.payload.PalletID;
+                if ((PalletID != -1)&&(ws!=7)) {
+                    ref1.zone3ID=PalletID;
+                    var query = sparqlgen.getProductDetail(PalletID, "currentneed");
+                    fuseki("query", query, '', function (need) {
+                        var exec_process_query= sparqlgen.getInstanceProperty('robot_'+ws,'hasExecuteProcess');
+                        fuseki("query",exec_process_query,'',function(process){
+                            var url_query = sparqlgen.getInstanceProperty(process,'hasUrl');
+                            fuseki("query",url_query,'',function(url){
+                                optionsOrchestrator.body = url;
+                                request(optionsOrchestrator, function (err, res, body) {
+                                    if (err) {
+                                        console.log('Error sending invoke  command to the orchestrator');
+                                    }
+                                });
+                            })
 
+                        })
+                    })
+
+
+
+                }
                 //var id = req.body.id;
                 //var senderID = 'SimROB7';
                 //queries the fuseki with the query obtained in the previous step to obtain neighnour
@@ -337,7 +405,7 @@ workstation.prototype.runServer = function (port) {
                 if (PalletID != -1){
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
-                    fuseki("query", getNeighQuery, 0, function (neighbour) {
+                    fuseki("query", getNeighQuery, '', function (neighbour) {
                         var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
                         fuseki("query", reachNeighLinkQuery, zone, function (link) {
                             optionsOrchestrator.body = link;
@@ -386,6 +454,35 @@ workstation.prototype.runServer = function (port) {
                     }
 
                 })
+                break;
+            case "PaperLoaded":
+                var PalletID = ref1.zone3ID;
+                var updatequery = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"hasCurrentNeed","frame");
+                console.log('debug 98',updatequery);
+                fuseki("update",updatequery,'',function(){
+                    console.log('98.5:'+req.body.id+' 98.7: ' + req.body.senderID)
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
+                    fuseki("query", getNeighQuery, 0, function (neighbour) {
+                        console.log('From function call: ', neighbour);
+                        var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                        console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
+                        fuseki("query", reachNeighLinkQuery, 0, function (link) {
+                            console.log('link: ', link);
+                            optionsOrchestrator.body = link;
+                            request(optionsOrchestrator, function (err, res, body) {
+                                if (err) {
+                                    console.log('Error sending invoke  command to the orchestrator');
+                                }
+
+                            });
+                        });
+
+                    });
+
+                });
+
+                break;
         }
     });
 

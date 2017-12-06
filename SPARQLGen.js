@@ -19,6 +19,10 @@ module.exports = {
         //
         return query;
     },
+    getInstanceProperty: function(subject, predicate){
+        var query = "query= "+ prefix_iii +  " SELECT * WHERE {iii:"+subject+" iii:"+predicate+" ?variable.}";
+        return query;
+    },
 
     getNeighbourQuery: function(subject, predicate){
         var query = "query= "+ prefix_iii +  " SELECT * WHERE {iii:"+subject+" iii:"+predicate+" ?variable.}";
@@ -43,6 +47,11 @@ module.exports = {
         var query = "query= "+ prefix_iii +  " SELECT ?"+detail+" WHERE {?s iii:hasPalletID '"+palletID+"'. ?s iii:hasFrameType ?frametype. ?s iii:hasFrameColour ?framecolour. ?s iii:hasKeyboardType ?keyboardtype. ?s iii:hasKeyboardColour ?keyboardclour. ?s iii:hasScreenType ?screentype. ?s iii:hasScreenColour ?screencolour.  ?s iii:hasCurrentNeed ?currentneed.}";
         return query;
     },
+    updatePropertyGivenProperty: function(givenproperty,givenpropertyvalue, updateproperty,updatepropertyvalue){
+        var query = "update= "+ prefix_iii +  " DELETE{ ?s iii:"+updateproperty+" ?o. } INSERT { ?s iii:"+updateproperty+" '"+updatepropertyvalue+"'.} WHERE { ?s iii:"+givenproperty+" '"+givenpropertyvalue+"'. ?s iii:"+updateproperty+" ?o. }";
+        return query;
+    },
+
 
 
 };
