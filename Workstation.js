@@ -198,6 +198,63 @@ function fuseki(type, query, tempgoal, callback) {
                     callback(result);
                 }
             }
+            else if (query_.includes("screentype")) {
+                str = body.results.bindings[0].screentype.value;
+                console.log('STR: ',str);
+                if (str.includes("#")) {
+                    result = str.split("#")[1];
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+                else {
+                    result = str;
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+            }
+            else if (query_.includes("screencolour")) {
+                str = body.results.bindings[0].screencolour.value;
+                console.log('STR: ',str);
+                if (str.includes("#")) {
+                    result = str.split("#")[1];
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+                else {
+                    result = str;
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+            }
+            else if (query_.includes("keyboardtype")) {
+                str = body.results.bindings[0].keyboardtype.value;
+                console.log('STR: ',str);
+                if (str.includes("#")) {
+                    result = str.split("#")[1];
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+                else {
+                    result = str;
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+            }
+            else if (query_.includes("keyboardcolour")) {
+                str = body.results.bindings[0].keyboardcolour.value;
+                console.log('STR: ',str);
+                if (str.includes("#")) {
+                    result = str.split("#")[1];
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+                else {
+                    result = str;
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+            }
+
 
 
 
@@ -364,7 +421,7 @@ workstation.prototype.runServer = function (port) {
                 // callNext(query1);
                 break;
             case "Z2_Changed":
-
+                var PalletID = req.body.payload.PalletID;
                 if(PalletID !=-1){
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
@@ -505,6 +562,7 @@ workstation.prototype.runServer = function (port) {
                 }
                 break;
             case "Z4_Changed":
+                var PalletID = req.body.payload.PalletID;
                 if (PalletID != -1){
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
@@ -540,6 +598,7 @@ workstation.prototype.runServer = function (port) {
                 })
                 break;
             case "PaperLoaded":
+
                 var PalletID = ref1.zone3ID;
                 var updatequery = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"hasCurrentNeed","frame");
                 console.log('debug 98',updatequery);
@@ -565,6 +624,81 @@ workstation.prototype.runServer = function (port) {
                     });
 
                 });
+
+                break;
+            case "DrawEndExecution":
+                var PalletID = req.body.payload.PalletID;
+                var Recipe = req.body.payload.Recipe;
+                var color = req.body.payload.Color;
+                var ws = req.body.senderID.split("B")[1];
+                var nextneed;
+                if((Recipe > 0)&&((Recipe < 4))){
+                     nextneed = "screen";
+                }
+                else if ((Recipe > 3)&&((Recipe < 7))) {
+                    nextneed = "keyboard";
+                }
+                else if ((Recipe > 6)&&((Recipe < 10))) {
+                    nextneed = "complete";
+                }
+                if(nextneed!="complete") {
+                    var updatequery = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "hasCurrentNeed", nextneed);
+                    fuseki("update", updatequery, '', function () {
+                        var query = sparqlgen.getProductDetail(PalletID, "currentneed");
+                        fuseki("query", query, '', function (need) {
+                            var need_colour = need + 'colour';
+                            var need_type = need + 'type';
+                            var getneedcolour_query = sparqlgen.getProductDetail(PalletID, need_colour);
+                            var getneedtype_query = sparqlgen.getProductDetail(PalletID, need_type);
+                            console.log('Need Colour: ' + need_colour + 'Need Type:  ' + need_type);
+                            console.log('Need Type: Query  ' + getneedtype_query);
+                            fuseki("query", getneedcolour_query, '', function (colour) {
+                                need_colour = colour;
+                                fuseki("query", getneedtype_query, '', function (type) {
+                                    need_type = type;
+                                    var exec_process_query = sparqlgen.getInstanceProperty('robot_' + ws, 'hasExecuteProcess');
+                                    fuseki("query", exec_process_query, '', function (process) {
+                                        console.log('Need Colour: ' + need_colour + 'Need Type:  ' + need_type);
+                                        var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
+                                        fuseki("query", url_query, '', function (url) {
+                                            console.log('Ref1.equipwith', ref1.equip_with);
+                                            if (need_colour != ref1.equip_with) {
+                                                console.log('MISMATCH FOUND BETWEEN NEED COLOUR: ' + need_colour + ' AND EQUIPPED WITH: ' + ref1.equip_with);
+                                                console.log('EQUIPPING . . ');
+                                                var equipwith = 'ChangePen' + need_colour.toUpperCase();
+                                                console.log('Equipwith', equipwith);
+                                                optionsOrchestrator.body = url + equipwith;
+                                                request(optionsOrchestrator, function (err, res, body) {
+                                                    if (err) {
+                                                        console.log('Error sending invoke  command to the orchestrator');
+                                                    }
+                                                });
+
+                                            }
+                                            //GET DRAW URL NUMBER
+                                            var drawnum = functions.getdrawnumber(need_type)
+                                            console.log('Draw Num: ', drawnum);
+                                            optionsOrchestrator.body = url + drawnum;
+                                            console.log('Draw URL: ', optionsOrchestrator.body);
+
+                                            request(optionsOrchestrator, function (err, res, body) {
+                                                if (err) {
+                                                    console.log('Error sending invoke  command to the orchestrator');
+                                                }
+                                            });
+                                        })
+                                    })
+                                });
+                            });
+
+                        });
+
+
+                    });
+                }
+                else{
+                    console.log("FIRST ORDER COMPLETE. . .HURRRAAYY!!!");
+                }
 
                 break;
         }
