@@ -47,6 +47,7 @@ function fuseki(type, query, tempgoal, callback) {
             'Accept': 'application/sparql-results+json,*/*;q=0.9'
         }
     };
+    var query_ = query.split("WHERE")[0];
     if (type == "query") {
         var result;
         var str;
@@ -156,7 +157,7 @@ function fuseki(type, query, tempgoal, callback) {
                     }
                 }
             }
-            else if (query.includes("currentneed")) {
+            else if (query_.includes("currentneed")) {
                 str = body.results.bindings[0].currentneed.value;
                 if (str.includes("#")) {
                     result = str.split("#")[1];
@@ -169,8 +170,22 @@ function fuseki(type, query, tempgoal, callback) {
                     callback(result);
                 }
             }
-            else if (query.includes("frametype")) {
+            else if (query_.includes("frametype")) {
                 str = body.results.bindings[0].frametype.value;
+                console.log('STR: ',str);
+                if (str.includes("#")) {
+                    result = str.split("#")[1];
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+                else {
+                    result = str;
+                    console.log("From functionW:", result);
+                    callback(result);
+                }
+            }
+            else if (query_.includes("framecolour")) {
+                str = body.results.bindings[0].framecolour.value;
                 console.log('STR: ',str);
                 if (str.includes("#")) {
                     result = str.split("#")[1];
@@ -432,45 +447,48 @@ workstation.prototype.runServer = function (port) {
                                         var need_type = need + 'type';
                                         var getneedcolour_query = sparqlgen.getProductDetail(PalletID, need_colour);
                                         var getneedtype_query = sparqlgen.getProductDetail(PalletID, need_type);
+                                        console.log('Need Colour: ' + need_colour + 'Need Type:  ' + need_type);
+                                        console.log('Need Type: Query  ' + getneedtype_query);
                                         fuseki("query", getneedcolour_query, '', function (colour) {
                                             need_colour = colour;
                                             fuseki("query", getneedtype_query, '', function (type) {
                                                 need_type = type;
-                                            });
+                                                var exec_process_query = sparqlgen.getInstanceProperty('robot_' + ws, 'hasExecuteProcess');
+                                                fuseki("query", exec_process_query, '', function (process) {
+                                                    console.log('Need Colour: ' + need_colour + 'Need Type:  ' + need_type);
+                                                    var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
+                                                    fuseki("query", url_query, '', function (url) {
+                                                        console.log('Ref1.equipwith', ref1.equip_with);
+                                                        if (need_colour != ref1.equip_with) {
+                                                            console.log('MISMATCH FOUND BETWEEN NEED COLOUR: ' + need_colour + ' AND EQUIPPED WITH: ' + ref1.equip_with);
+                                                            console.log('EQUIPPING . . ');
+                                                            var equipwith = 'ChangePen' + need_colour.toUpperCase();
+                                                            console.log('Equipwith', equipwith);
+                                                            optionsOrchestrator.body = url + equipwith;
+                                                            request(optionsOrchestrator, function (err, res, body) {
+                                                                if (err) {
+                                                                    console.log('Error sending invoke  command to the orchestrator');
+                                                                }
+                                                            });
 
+                                                        }
+                                                        //GET DRAW URL NUMBER
+                                                        var drawnum = functions.getdrawnumber(need_type)
+                                                        console.log('Draw Num: ', drawnum);
+                                                        optionsOrchestrator.body = url + drawnum;
+                                                        console.log('Draw URL: ', optionsOrchestrator.body);
 
-                                            var exec_process_query = sparqlgen.getInstanceProperty('robot_' + ws, 'hasExecuteProcess');
-                                            fuseki("query", exec_process_query, '', function (process) {
-                                                console.log('Need Colour: ' + need_colour + 'Need Type:  ' + need_type);
-                                                var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
-                                                fuseki("query", url_query, '', function (url) {
-                                                    console.log('Ref1.equipwith', ref1.equip_with);
-                                                    if (need_colour != ref1.equip_with) {
-                                                        console.log('MISMATCH FOUND BETWEEN NEED COLOUR: ' + need_colour + ' AND EQUIPPED WITH: ' + ref1.equip_with);
-                                                        console.log('EQUIPPING . . ');
-                                                        var equipwith = 'ChangePen' + need_colour.toUpperCase();
-                                                        console.log('Equipwith', equipwith);
-                                                        optionsOrchestrator.body = url + equipwith;
                                                         request(optionsOrchestrator, function (err, res, body) {
                                                             if (err) {
                                                                 console.log('Error sending invoke  command to the orchestrator');
                                                             }
                                                         });
-
-                                                    }
-                                                    //GET DRAW URL NUMBER
-                                                    var drawnum = functions.getdrawnumber(need_type)
-                                                    console.log('Draw Num: ', drawnum);
-                                                    optionsOrchestrator.body = url + drawnum;
-                                                    console.log('Draw URL: ', optionsOrchestrator.body);
-
-                                                    request(optionsOrchestrator, function (err, res, body) {
-                                                        if (err) {
-                                                            console.log('Error sending invoke  command to the orchestrator');
-                                                        }
-                                                    });
+                                                    })
                                                 })
-                                            })
+                                            });
+
+
+
 
                                         });
 
