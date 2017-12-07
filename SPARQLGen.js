@@ -44,7 +44,7 @@ module.exports = {
     },
 
     getProductDetail: function(palletID,detail){
-        var query = "query= "+ prefix_iii +  " SELECT ?"+detail+" WHERE {?s iii:hasPalletID '"+palletID+"'. ?s iii:hasFrameType ?frametype. ?s iii:hasFrameColour ?framecolour. ?s iii:hasKeyboardType ?keyboardtype. ?s iii:hasKeyboardColour ?keyboardclour. ?s iii:hasScreenType ?screentype. ?s iii:hasScreenColour ?screencolour.  ?s iii:hasCurrentNeed ?currentneed.}";
+        var query = "query= "+ prefix_iii +  " SELECT ?"+detail+" WHERE {?s iii:hasPalletID '"+palletID+"'. ?s iii:hasFrameType ?frametype. ?s iii:hasFrameColour ?framecolour. ?s iii:hasKeyboardType ?keyboardtype. ?s iii:hasKeyboardColour ?keyboardcolour. ?s iii:hasScreenType ?screentype. ?s iii:hasScreenColour ?screencolour.  ?s iii:hasCurrentNeed ?currentneed.}";
         return query;
     },
     updatePropertyGivenProperty: function(givenproperty,givenpropertyvalue, updateproperty,updatepropertyvalue){

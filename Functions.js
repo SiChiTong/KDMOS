@@ -123,6 +123,39 @@ module.exports = {
         }
 
 
-    }
+    },
+    getdrawnumber: function (type) {
+        switch (type){
+            case "Frame_1":
+                return 'Draw1';
+                break;
+            case "Frame_2":
+                return 'Draw2';
+                break;
+            case "Frame_3":
+                return 'Draw3';
+                break;
+            case "Screen_1":
+                return 'Draw4';
+                break;
+            case "Screen_2":
+                return 'Draw5';
+                break;
+            case "Screen_3":
+                return 'Draw6';
+                break;
+            case "Keyboard_1":
+                return 'Draw7';
+                break;
+            case "Keyboard_2":
+                return 'Draw8';
+                break;
+            case "Keyboard_3":
+                return 'Draw9';
+                break;
+
+        }
+
+    },
 
 };
