@@ -269,13 +269,13 @@ function fuseki(type, query, tempgoal, callback) {
     else if (type == "update") {
         optionsKB.url = "http://127.0.0.1:3032/iii2017/update";
 
-
+    console.log("UPDATE: ",query);
         request(optionsKB, function (err, res, body) {
             if (err) {
                 console.log('Error updating the knowledge base', err);
                 return;
             }
-            console.log('DEBUG99: ',body);
+            // console.log('DEBUG99: ',body);
             parseXml(body, function (err, result) {
                 console.log('DEBUG100',result);
                 console.log(result.html.body[0].h1);
@@ -381,48 +381,91 @@ workstation.prototype.runServer = function (port) {
 
             case "Z1_Changed":
                 var PalletID = req.body.payload.PalletID;
-                var temp_goal
+                var temp_goal;
                 console.log('DEBUG POINT 2222222');
                 if (PalletID != -1) {
+                    var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtWS",'Workstation '+ws);
+                    var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtZone",'Zone '+zone);
+                    console.log('Update Ws: ', update_ws);
+                    console.log('Update Zone: ', update_zone);
+
+                    fuseki("update",update_ws,'',function(){});
+                    fuseki("update",update_zone,'',function(){});
+
+
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','occupied');
+                    console.log('updateStatus: ', updateStatus);
+                    fuseki("update",updateStatus,'',function(){});
                     console.log('DEBUG POINT 333333333');
                     console.log(PalletID);
                     var query = sparqlgen.getProductDetail(PalletID, "currentneed");
                     console.log(query);
                     fuseki("query", query, '', function (need) {
                         console.log('From function call, need: ', need);
-                        var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
+                         //Gets Processed String for use by Knowledge Base
+                        var subject3 = 'zone_3_'+ws;
                         console.log('Subject: ', subject);
                         var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
                         console.log('getNeighQuery: ', getNeighQuery);
-                        if ((need == 'paper') || (need == 'unload')) {
+                        var checkstatusquery = sparqlgen.getInstanceProperty(subject3,"hasStatus");
+                        fuseki("query",checkstatusquery,'',function(status){
+                            console.log('DEBUG NEED CHECKING:  '+ need + " status: " + status);
 
-                            temp_goal = 'zone_1_' + next_ws;
-                        }
-                        else{
-                            temp_goal = 'zone_3_' + ws;
+                                if (status == 'occupied') {
+                                    temp_goal = 'zone_1_' + next_ws;
+                                }
+                                else {
+                                    if ((need == 'paper') || (need == 'unload')) {
 
-                        }
-                        fuseki("query", getNeighQuery, temp_goal, function (neighbour) {
-                            var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                            console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
-                            fuseki("query", reachNeighLinkQuery, '', function (link) {
-                                console.log('link: ', link);
-                                optionsOrchestrator.body = link;
-                                request(optionsOrchestrator, function (err, res, body) {
-                                    if (err) {
-                                        console.log('Error sending invoke  command to the orchestrator');
+                                        temp_goal = 'zone_1_' + next_ws;
                                     }
-                                });
+                                    else {
+                                        temp_goal = 'zone_3_' + ws;
+
+                                    }
+                                }
+                            fuseki("query", getNeighQuery, temp_goal, function (neighbour) {
+                                var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                                console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
+                                fuseki("query", reachNeighLinkQuery, '', function (link) {
+                                    console.log('link: ', link);
+                                    optionsOrchestrator.body = link;
+                                    request(optionsOrchestrator, function (err, res, body) {
+                                        if (err) {
+                                            console.log('Error sending invoke  command to the orchestrator');
+                                        }
+                                    });
+                                })
                             })
-                        })
+
+                        });
+
                     });
 
+                }
+                else {
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','free');
+                    fuseki("update",updateStatus,'',function(){});
                 }
                 // callNext(query1);
                 break;
             case "Z2_Changed":
                 var PalletID = req.body.payload.PalletID;
                 if(PalletID !=-1){
+                    var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtWS",'Workstation '+ws);
+                    var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtZone",'Zone '+zone);
+                    fuseki("update",update_ws,'',function(){});
+                    fuseki("update",update_zone,'',function(){});
+
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','occupied');
+                    console.log('updateStatus: ', updateStatus);
+                    fuseki("update",updateStatus,'',function(){});
+
+
+
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
                     fuseki("query", getNeighQuery, 0, function (neighbour) {
@@ -443,11 +486,27 @@ workstation.prototype.runServer = function (port) {
 
 
                 }
+
+                else{
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','free');
+                    console.log('updateStatus: ', updateStatus);
+                    fuseki("update",updateStatus,'',function(){});
+                }
                 break;
             case "Z3_Changed":
                 var PalletID = req.body.payload.PalletID;
                 ref1.zone3ID = PalletID;
                 if (PalletID != -1) {
+                    var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtWS",'Workstation '+ws);
+                    var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtZone",'Zone '+zone);
+                    fuseki("update",update_ws,'',function(){});
+                    fuseki("update",update_zone,'',function(){});
+
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','occupied');
+                    console.log('updateStatus: ', updateStatus);
+                    fuseki("update",updateStatus,'',function(){});
 
                     switch(req.body.senderID){
                         case "SimCNV1":
@@ -455,47 +514,88 @@ workstation.prototype.runServer = function (port) {
                             console.log('printing A section request',req.body);
                             var query = sparqlgen.getProductDetail(PalletID, "currentneed");
                             fuseki("query", query, '', function (need) {
-                                var exec_process_query = sparqlgen.getInstanceProperty('robot_' + ws, 'hasExecuteProcess');
-                                fuseki("query", exec_process_query, '', function (process) {
-                                    var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
-                                    fuseki("query", url_query, '', function (url) {
-                                        optionsOrchestrator.body = url;
+                                if(need == 'paper') {
+                                    var exec_process_query = sparqlgen.getInstanceProperty('robot_' + ws, 'hasExecuteProcess');
+                                    fuseki("query", exec_process_query, '', function (process) {
+                                        var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
+                                        fuseki("query", url_query, '', function (url) {
+                                            optionsOrchestrator.body = url;
+                                            request(optionsOrchestrator, function (err, res, body) {
+                                                if (err) {
+                                                    console.log('Error sending invoke  command to the orchestrator');
+                                                }
+                                            });
+                                        })
+                                    })
+                                }
+
+                                else{
+                                    var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
+                                    console.log('Subject: ', subject);
+                                    var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
+                                    console.log('getNeighQuery: ', getNeighQuery);
+                                    fuseki("query", getNeighQuery, 0, function (neighbour) {
+                                        console.log('From function call: ', neighbour);
+                                        var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                                        console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
+                                        fuseki("query", reachNeighLinkQuery, 0, function (link) {
+                                            console.log('link: ', link);
+                                            optionsOrchestrator.body = link;
+                                            request(optionsOrchestrator, function (err, res, body) {
+                                                if (err) {
+                                                    console.log('Error sending invoke  command to the orchestrator');
+                                                }
+
+                                            });
+                                        });
+
+                                    });
+                                }
+                            });
+
+                            break;
+                        case "SimCNV7":
+                            // if(PalletID!=-1) {
+                                var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtWS",'Workstation '+ws);
+                                var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtZone",'Zone '+zone);
+                                fuseki("update",update_ws,'',function(){});
+                                fuseki("update",update_zone,'',function(){});
+
+                                console.log("Dont do anything for now");
+                                var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
+                                console.log('Subject: ', subject);
+                                var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
+                                console.log('getNeighQuery: ', getNeighQuery);
+                                fuseki("query", getNeighQuery, 0, function (neighbour) {
+                                    console.log('From function call: ', neighbour);
+                                    var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                                    console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
+                                    fuseki("query", reachNeighLinkQuery, 0, function (link) {
+                                        console.log('link: ', link);
+                                        optionsOrchestrator.body = link;
                                         request(optionsOrchestrator, function (err, res, body) {
                                             if (err) {
                                                 console.log('Error sending invoke  command to the orchestrator');
                                             }
+
                                         });
-                                    })
-                                })
-                            })
-
-                            break;
-                        case "SimCNV7":
-                            console.log("Dont do anything for now");
-                            var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
-                            console.log('Subject: ', subject);
-                            var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
-                            console.log('getNeighQuery: ', getNeighQuery);
-                            fuseki("query", getNeighQuery, 0, function (neighbour) {
-                                console.log('From function call: ', neighbour);
-                                var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                                console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
-                                fuseki("query", reachNeighLinkQuery, 0, function (link) {
-                                    console.log('link: ', link);
-                                    optionsOrchestrator.body = link;
-                                    request(optionsOrchestrator, function (err, res, body) {
-                                        if (err) {
-                                            console.log('Error sending invoke  command to the orchestrator');
-                                        }
-
                                     });
-                                });
 
-                            });
+                                });
+                            // }
                             break;
                         default:
-                            if(PalletID!=-1) {
+                            // if(PalletID!=-1) {
                                 setTimeout(function () {
+                                    var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtWS",'Workstation '+ws);
+                                    var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtZone",'Zone '+zone);
+                                    fuseki("update",update_ws,'',function(){});
+                                    fuseki("update",update_zone,'',function(){});
+
+                                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','occupied');
+                                    console.log('updateStatus: ', updateStatus);
+
                                     console.log('REACHED C', req.body.senderID);
                                     console.log('XXXXXXXX', ws);
                                     var query = sparqlgen.getProductDetail(PalletID, "currentneed");
@@ -544,26 +644,35 @@ workstation.prototype.runServer = function (port) {
                                                 })
                                             });
 
-
-
-
                                         });
-
-
                                     })
 
-                                }, 1000);
-                            }
-
+                                }, 1500);
                             break;
+                            // }
                     }
-
-
+                }
+                else{
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','free');
+                    console.log('updateStatus: ', updateStatus);
+                    fuseki("update",updateStatus,'',function(){});
                 }
                 break;
             case "Z4_Changed":
                 var PalletID = req.body.payload.PalletID;
                 if (PalletID != -1){
+                    var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtWS",'Workstation '+ws);
+                    var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID",PalletID,"isAtZone",'Zone '+zone);
+                    fuseki("update",update_ws,'',function(){});
+                    fuseki("update",update_zone,'',function(){});
+
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','occupied');
+                    console.log('updateStatus: ', updateStatus);
+                    fuseki("update",updateStatus,'',function(){});
+
+
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
                     fuseki("query", getNeighQuery, '', function (neighbour) {
@@ -580,6 +689,15 @@ workstation.prototype.runServer = function (port) {
                         })
 
                     });
+                }
+
+                else {
+
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    var updateStatus = sparqlgen.updateProperty(subject,'hasStatus','free');
+                    console.log('updateStatus: ', updateStatus);
+                    fuseki("update",updateStatus,'',function(){});
+
                 }
                 break;
             case "Z5_Changed":
@@ -631,6 +749,7 @@ workstation.prototype.runServer = function (port) {
                 var Recipe = req.body.payload.Recipe;
                 var color = req.body.payload.Color;
                 var ws = req.body.senderID.split("B")[1];
+                var zone = req.body.id.split("")[1];
                 var nextneed;
                 if((Recipe > 0)&&((Recipe < 4))){
                      nextneed = "screen";
@@ -639,8 +758,26 @@ workstation.prototype.runServer = function (port) {
                     nextneed = "keyboard";
                 }
                 else if ((Recipe > 6)&&((Recipe < 10))) {
-                    nextneed = "complete";
+                    nextneed = "unload";
+                    var updatequery = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "hasCurrentNeed", nextneed);
+                    fuseki("update", updatequery, '', function () {
+                        var subject = functions.getSubject('Z3_Changed', req.body.senderID);
+                        var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
+                        fuseki("query", getNeighQuery, '', function (neighbour) {
+                            var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                            console.log('Zone: ',zone);
+                            fuseki("query", reachNeighLinkQuery, '3', function (link) {
+                                optionsOrchestrator.body = link;
+                                request(optionsOrchestrator, function (err, res, body) {
+                                    if (err) {
+                                        console.log('Error sending invoke  command to the orchestrator');
+                                    }
+                                });
+                            })
+                        });
+                    });
                 }
+
                 if(nextneed!="complete") {
                     var updatequery = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "hasCurrentNeed", nextneed);
                     fuseki("update", updatequery, '', function () {
@@ -672,15 +809,17 @@ workstation.prototype.runServer = function (port) {
                                                     if (err) {
                                                         console.log('Error sending invoke  command to the orchestrator');
                                                     }
+                                                    else{
+                                                        ref1.equip_with= need_colour;
+                                                    }
                                                 });
 
                                             }
                                             //GET DRAW URL NUMBER
-                                            var drawnum = functions.getdrawnumber(need_type)
+                                            var drawnum = functions.getdrawnumber(need_type);
                                             console.log('Draw Num: ', drawnum);
                                             optionsOrchestrator.body = url + drawnum;
                                             console.log('Draw URL: ', optionsOrchestrator.body);
-
                                             request(optionsOrchestrator, function (err, res, body) {
                                                 if (err) {
                                                     console.log('Error sending invoke  command to the orchestrator');
@@ -692,8 +831,6 @@ workstation.prototype.runServer = function (port) {
                             });
 
                         });
-
-
                     });
                 }
                 else{
@@ -716,6 +853,7 @@ workstation.prototype.runServer = function (port) {
         if ((ref1.wsnumber != 1) && (ref1.wsnumber != 7)) {
             request.post('	http://localhost:3000/RTU/SimCNV' + ref1.wsnumber + '/events/Z4_Changed/notifs', {form: {destUrl: "http://localhost:600" + ref1.wsnumber + "/notifs/"}});
             request.post('http://localhost:3000/RTU/SimROB' + ref1.wsnumber + '/events/DrawEndExecution/notifs', {form: {destUrl: "http://localhost:600" + ref1.wsnumber + "/notifs/"}});
+            ref1.loadpen();
         }
 
     }
@@ -752,6 +890,26 @@ function subscriptions() {
     });
 }
 subscriptions();
+
+
+workstation.prototype.loadpen = function () {
+    ref=this;
+    var options;
+    var temp  = ref.equip_with;
+    var equipment = temp.toUpperCase();
+
+    var url= "http://127.0.0.1:3000/RTU/SimROB"+ref.wsnumber+"/services/ChangePen"+equipment;
+
+    optionsOrchestrator.body = url;
+    request(optionsOrchestrator, function (err) {
+
+        if (err) {
+            console.log('Error loading pen', err);
+        }
+
+
+    });
+};
 
 var ws1 = new workstation(1, 'paper', 'zone_2_1', 'zone_3_1', 'zone_5_1', 'NILL', '192.168.1.11', '192.168.1.12');
 var ws2 = new workstation(2, 'red', '', '', '', '', '192.168.2.1', '192.168.2.2');

@@ -50,7 +50,7 @@ function updateProduct(palletID) {
         for(var j = 0; j<orders[i].products.length; j++){
             if (orders[i].products[j].hasPalletID == 0){
                 orders[i].products[j].hasPalletID = palletID;
-                var query = sparqlgen.updateProperty("Product_" + product_num_, "hasPalletID",JSON.stringify(palletID));
+                var query = sparqlgen.updateProperty("Product_" + product_num_, "hasPalletID",palletID);
                 functions.fuseki("update", query);
                 product_num_++;
                 return;

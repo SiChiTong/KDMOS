@@ -39,7 +39,7 @@ module.exports = {
     },
 
     updateProperty: function(subject, predicate, object){
-        var query = "update= "+ prefix_iii +  " DELETE{ iii:"+subject+" iii:"+predicate+" ?o. } INSERT { iii:"+subject+" iii:"+predicate+" "+object+"} WHERE { iii:"+subject+" iii:"+predicate+" ?o. }";
+        var query = "update= "+ prefix_iii +  " DELETE{ iii:"+subject+" iii:"+predicate+" ?o. } INSERT { iii:"+subject+" iii:"+predicate+" '"+object+"'} WHERE { iii:"+subject+" iii:"+predicate+" ?o. }";
         return query;
     },
 
