@@ -51,6 +51,10 @@ module.exports = {
         var query = "update= "+ prefix_iii +  " DELETE{ ?s iii:"+updateproperty+" ?o. } INSERT { ?s iii:"+updateproperty+" '"+updatepropertyvalue+"'.} WHERE { ?s iii:"+givenproperty+" '"+givenpropertyvalue+"'. ?s iii:"+updateproperty+" ?o. }";
         return query;
     },
+    getPreviousNeighbour: function(zone){
+        var query = "query= "+ prefix_iii +  " SELECT * WHERE {?variable iii:hasNeighbour iii:"+zone+".}";
+        return query;
+    },
 
 
 
