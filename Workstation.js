@@ -8,20 +8,6 @@ var sparqlgen = require('./SPARQLGen');
 var parseXml = require('xml2js').parseString;
 
 
-//define variables
-var setValue;
-var query1 = "query=PREFIX iii:<http://www.manufacturing.com/cellphones.owl#> SELECT* WHERE{iii:conveyor_1 iii:transZone45 ?url}";
-
-//define query for the Knowledge base
-var optionsUpdatepalletID = {
-    method: 'post',
-    body: " ",
-    json: true, // Use,If you are sending JSON data
-    url: "http://127.0.0.1:8000/updateProduct",
-    headers: {
-        'Content-Type': 'text/plain'
-    }
-};
 
 //define query for S1000
 var optionsOrchestrator = {
@@ -34,7 +20,48 @@ var optionsOrchestrator = {
     }
 };
 
+//FUNCTION TO UPDATE PALLET/ SENT TO ODRDER CLASS WHICH THEN UPDATES BOTH KB AND CLASS OBJECTS
+function UpdatePalletID(PalletID) {
+    var optionsUpdatepalletID = {
+        method: 'post',
+        body: " ",
+        json: true, // Use,If you are sending JSON data
+        url: "http://127.0.0.1:8000/updateProduct",
+        headers: {
+            'Content-Type': 'text/plain'
+        }
+    };
+    optionsUpdatepalletID.body = PalletID;
+    request(optionsUpdatepalletID, function (err) {
+        if (!err) {
+            console.log('Requested Order Class to Update Pallet ID ' + PalletID);
+        }
+    })
+}
 
+//FUNCTION TO INVOKE OPERATIONS ON THE ORCHESTRATOR
+function Orchestrator(url) {
+
+    optionsOrchestrator = {
+        method: 'post',
+        body: '', // Javascript object payload
+        json: true,
+        url: 'http://127.0.0.1:6500/invokeService', //http://127.0.0.1:6500/invokeService
+        headers: {
+            'Content-Type': 'text/plain'
+        }
+    };
+    optionsOrchestrator.body = url;
+
+    request(optionsOrchestrator, function (err) {
+        if (!err) {
+            console.log('Requested Orchestrator to Execute URl ' + url);
+        }
+    })
+
+}
+
+//FUNCTION TO QUERY THE FUSEKI SERVER
 function fuseki(type, query, tempgoal, callback) {
 
     var optionsKB = {
@@ -48,10 +75,11 @@ function fuseki(type, query, tempgoal, callback) {
         }
     };
     var query_ = query.split("WHERE")[0];
+    console.log('FROM FUNCTION FUSEKI: Query Received: \n TYPE: '+type+' QUERY: '+ query);
+    //If the type of the query is "query" and not ipdate
     if (type == "query") {
         var result;
         var str;
-        var j = 0;
         optionsKB.url = "http://127.0.0.1:3032/iii2017/query";
         request(optionsKB, function (err, res, body) {
 
@@ -59,11 +87,9 @@ function fuseki(type, query, tempgoal, callback) {
                 console.log('Error querying the knowledge base', err);
                 return;
             }
-            //console.log(body);
-            console.log('DEBUG 0:', query);
-            console.log(body.results.bindings);
+
+            console.log('FROM FUNCTION FUSEKI: Query Result for Query: '+query+' IS: '+ body.results.bindings);
             if (query.includes("variable")) {
-                // str = body.results.bindings[k].variable.value;
                 var count = body.results.bindings.length;
                 if (count > 1) {
                     if (query.includes("hasLinkDest")) {
@@ -71,7 +97,6 @@ function fuseki(type, query, tempgoal, callback) {
                         for (var i = 0; i < count; i++) {
 
                             links.push(body.results.bindings[i].variable.value);
-                            console.log('DEBUG Y', temp);
                         }
                         var link_1 = links[0];
                         var link_2 = links[1];
@@ -88,14 +113,9 @@ function fuseki(type, query, tempgoal, callback) {
                         var neighbours = [];
                         var neigh;
                         for (var i = 0; i < count; i++) {
-
-                            // console.log('DEBUG Z', body.results);
-                            // console.log('DEBUG A', body.results.bindings[count]);
                             var temp = body.results.bindings[i].variable.value;
-                            console.log('DEBUG Y', temp);
                             if (temp.includes("#")) {
                                 neighbours.push(temp.split("#")[1]);
-                                console.log('DEBUG ZZ:', neighbours);
                             }
                         }
                         var neigh_1 = neighbours[0];
@@ -108,36 +128,13 @@ function fuseki(type, query, tempgoal, callback) {
                                 callback(result);
                             }
 
-                        })
+                        });
                         functions.fuseki("query", query_2, function (neighbour) {
                             if (neighbour == tempgoal) {
                                 result = neigh_2;
                                 callback(result);
                             }
-                        })
-                        // for (var j=0;j<neighbours.length;j++){
-                        // do {
-                        //     console.log('DEBUG: ENTERING SECOND FOR LOOP:', j);
-                        //     neigh = neighbours[j];
-                        //     console.log('FROM second loop neighbourslist', neigh);
-                        //     var query_ = sparqlgen.getNeighbourQuery(neigh, "hasNeighbour");
-                        //
-                        //     console.log('FROM second loop query_', query_);
-                        //     console.log('FROM second loop tempgoal', tempgoal);
-                        //     functions.fuseki("query", query_, function (neighbour) {
-                        //         console.log('debug k: ', neighbour);
-                        //         if (neighbour == tempgoal) {
-                        //             console.log('entered tempgoal if statement with neigbour:' + neighbour + ' and tempgoal ' + tempgoal + 'J:' + j + 'neigh: ' + neigh);
-                        //             result = neigh;
-                        //             console.log("From functionW:", result);
-                        //             callback(result);
-                        //
-                        //
-                        //         }
-                        //
-                        //     });
-                        //     j++
-                        //     } while(j<neighbours.length);
+                        });
                     }
                 }
 
@@ -146,12 +143,12 @@ function fuseki(type, query, tempgoal, callback) {
                     str = body.results.bindings[0].variable.value;
                     if (str.includes("#")) {
                         result = str.split("#")[1];
-                        console.log("From functionW:", result);
+                        console.log("FROM FUNCTION FUSEKI: ", result);
                         callback(result);
                     }
                     else {
                         result = str;
-                        console.log("From functionW:", result);
+                        console.log("FROM FUNCTION FUSEKI: ", result);
                         callback(result);
                     }
                 }
@@ -160,12 +157,12 @@ function fuseki(type, query, tempgoal, callback) {
                 str = body.results.bindings[0].currentneed.value;
                 if (str.includes("#")) {
                     result = str.split("#")[1];
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: Current Need:  ", result);
                     callback(result);
                 }
                 else {
                     result = str;
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: ", result);
                     callback(result);
                 }
             }
@@ -174,12 +171,12 @@ function fuseki(type, query, tempgoal, callback) {
                 console.log('STR: ', str);
                 if (str.includes("#")) {
                     result = str.split("#")[1];
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: Frame Type:  ", result);
                     callback(result);
                 }
                 else {
                     result = str;
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: ", result);
                     callback(result);
                 }
             }
@@ -188,12 +185,12 @@ function fuseki(type, query, tempgoal, callback) {
                 console.log('STR: ', str);
                 if (str.includes("#")) {
                     result = str.split("#")[1];
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: Frame Colour:  ", result);
                     callback(result);
                 }
                 else {
                     result = str;
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: ", result);
                     callback(result);
                 }
             }
@@ -202,12 +199,12 @@ function fuseki(type, query, tempgoal, callback) {
                 console.log('STR: ', str);
                 if (str.includes("#")) {
                     result = str.split("#")[1];
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI:Screen Type: ", result);
                     callback(result);
                 }
                 else {
                     result = str;
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: ", result);
                     callback(result);
                 }
             }
@@ -216,12 +213,12 @@ function fuseki(type, query, tempgoal, callback) {
                 console.log('STR: ', str);
                 if (str.includes("#")) {
                     result = str.split("#")[1];
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: Screen Colour:  ", result);
                     callback(result);
                 }
                 else {
                     result = str;
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI:  ", result);
                     callback(result);
                 }
             }
@@ -230,12 +227,12 @@ function fuseki(type, query, tempgoal, callback) {
                 console.log('STR: ', str);
                 if (str.includes("#")) {
                     result = str.split("#")[1];
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: ", result);
                     callback(result);
                 }
                 else {
                     result = str;
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: Keyboard Type:  ", result);
                     callback(result);
                 }
             }
@@ -244,61 +241,46 @@ function fuseki(type, query, tempgoal, callback) {
                 console.log('STR: ', str);
                 if (str.includes("#")) {
                     result = str.split("#")[1];
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: Keyboard Colour: ", result);
                     callback(result);
                 }
                 else {
                     result = str;
-                    console.log("From functionW:", result);
+                    console.log("FROM FUNCTION FUSEKI: ", result);
                     callback(result);
                 }
             }
-
-
         });
-
-
     }
+
     else if (type == "update") {
         optionsKB.url = "http://127.0.0.1:3032/iii2017/update";
 
-        console.log("UPDATE: ", query);
         request(optionsKB, function (err, res, body) {
             if (err) {
-                console.log('Error updating the knowledge base', err);
+                console.log('FROM FUNCTION FUSEKI: Error updating the knowledge base', err);
                 return;
             }
             // console.log('DEBUG99: ',body);
             parseXml(body, function (err, result) {
-                console.log('DEBUG100', result);
                 console.log(result.html.body[0].h1);
 
                 if (result.html.body[0].h1 == 'Success') {
-                    console.log('Successful updation');
+                    console.log('FROM FUNCTION FUSEKI: Successful updation');
                     callback();
                 }
                 else {
-                    console.log("Error while performing updation");
+                    console.log("FROM FUNCTION FUSEKI: Error while performing updation");
                     callback();
                 }
-
-
             });
-
-
-            // for(var i = 0; i<body.results.bindings.length; i++) {
-            //     var next = body.results.bindings[i].url.value;
-            //     //var setValue = next;
-            //     //requestOut(next);
-            //     console.log(next);
-            // }
         });
     }
 
 
 }
 
-
+//CLASS WORKSTATION
 var workstation = function (wsnumber, equipment, zone1neighbor, zone2neighbor, zone3neighbor, zone4neighbor, robotUrl, conveyorUrl) {
     this.wsnumber = wsnumber;
     this.equip_with = equipment;
@@ -318,8 +300,10 @@ var workstation = function (wsnumber, equipment, zone1neighbor, zone2neighbor, z
     this.url = '127.0.0.1';
     this.status = 'free';
     this.bypassflag = false;
+
 };
 
+//METHOD RUNSERVER OF CLASS WORKSTATION
 workstation.prototype.runServer = function (port) {
     var app = express();
     this.port = port;
@@ -330,10 +314,6 @@ workstation.prototype.runServer = function (port) {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/plain');
         res.write('\nI am workstation ' + ref1.wsnumber + 'from the CLASS Definition');
-        res.write('\nMy zone1 has neighbor: ' + ref1.zone1neighbour);
-        res.write('\nMy zone2 has neighbor: ' + ref1.zone2neighbour);
-        res.write('\nMy zone3 has neighbor: ' + ref1.zone3neighbour);
-        res.write('\nMy zone4 has neighbor:: ' + ref1.zone4neighbour);
         res.end('\nWorkstation ' + ref1.wsnumber + ' CLASS Server is running.');
     });
     app.use(bodyParser.json());
@@ -341,8 +321,6 @@ workstation.prototype.runServer = function (port) {
 
     //EXECUTE ROUTE FOR EVERY WORKSTATION
     app.post('/execute/', function (req, res) {
-
-
         if (ref1.wsnumber == 7) {
             optionsOrchestrator.body = "http://" + ref1.robotUrl + "/RTU/SimROB" + ref1.wsnumber + "/services/LoadPallet";
         }
@@ -362,53 +340,35 @@ workstation.prototype.runServer = function (port) {
     //HANDLE NOTIFICATION FROM THE FASTORY SIMULATOR
     app.post('/notifs/', function (req, res) {
         console.log(req.body);
-
-
         var ws = req.body.senderID.split("V")[1];
         var zone = req.body.id.split("")[1];
         var temp = parseInt(ws);
         var next_ws;
         temp < 12 ? next_ws = temp + 1 : next_ws = 1;
-        console.log('DEBUG POINT 11111111');
         switch (req.body.id) {
 
 
             case "Z1_Changed":
                 var PalletID = req.body.payload.PalletID;
                 var temp_goal;
-                console.log('DEBUG POINT 2222222');
                 if (PalletID != -1) {
                     var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "isAtWS", 'Workstation ' + ws);
                     var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "isAtZone", 'Zone ' + zone);
-                    console.log('Update Ws: ', update_ws);
-                    console.log('Update Zone: ', update_zone);
-
                     fuseki("update", update_ws, '', function () {
                     });
                     fuseki("update", update_zone, '', function () {
                     });
-
-
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'occupied');
-                    console.log('updateStatus: ', updateStatus);
                     fuseki("update", updateStatus, '', function () {
                     });
-                    console.log('DEBUG POINT 333333333');
-                    console.log(PalletID);
                     var query = sparqlgen.getProductDetail(PalletID, "currentneed");
                     console.log(query);
                     fuseki("query", query, '', function (need) {
-                        console.log('From function call, need: ', need);
-                        //Gets Processed String for use by Knowledge Base
                         var subject3 = 'zone_3_' + ws;
-                        console.log('Subject: ', subject);
                         var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
-                        console.log('getNeighQuery: ', getNeighQuery);
                         var checkstatusquery = sparqlgen.getInstanceProperty(subject3, "hasStatus");
                         fuseki("query", checkstatusquery, '', function (status) {
-                            console.log('DEBUG NEED CHECKING:  ' + need + " status: " + status);
-
                             if (status == 'occupied') {
                                 temp_goal = 'zone_1_' + next_ws;
                             }
@@ -419,24 +379,15 @@ workstation.prototype.runServer = function (port) {
                                 }
                                 else {
                                     temp_goal = 'zone_3_' + ws;
-
                                 }
                             }
                             fuseki("query", getNeighQuery, temp_goal, function (neighbour) {
                                 var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
                                 fuseki("query", nextzonestatusquery, '', function (nextstatus) {
-                                    console.log("next zone Status: ", nextstatus);
                                     if (nextstatus == 'free') {
                                         var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                                        console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
                                         fuseki("query", reachNeighLinkQuery, '', function (link) {
-                                            console.log('link: ', link);
-                                            optionsOrchestrator.body = link;
-                                            request(optionsOrchestrator, function (err, res, body) {
-                                                if (err) {
-                                                    console.log('Error sending invoke  command to the orchestrator');
-                                                }
-                                            });
+                                            Orchestrator(link);
                                         });
                                     }
                                 });
@@ -464,7 +415,6 @@ workstation.prototype.runServer = function (port) {
 
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'occupied');
-                    console.log('updateStatus: ', updateStatus);
                     fuseki("update", updateStatus, '', function () {
                     });
 
@@ -474,18 +424,13 @@ workstation.prototype.runServer = function (port) {
                     fuseki("query", getNeighQuery, 0, function (neighbour) {
                         var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
                         fuseki("query", nextzonestatusquery, '', function (nextstatus) {
-                            console.log("next zone Status: ", nextstatus);
                             if (nextstatus == 'free') {
                                 var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
                                 fuseki("query", reachNeighLinkQuery, zone, function (link) {
-                                    optionsOrchestrator.body = link;
-                                    request(optionsOrchestrator, function (err, res, body) {
-                                        if (err) {
-                                            console.log('Error sending invoke  command to the orchestrator');
-                                        }
-                                    });
+                                    Orchestrator(link);
                                 })
                             }
+
                         })
                     });
                 }
@@ -493,7 +438,6 @@ workstation.prototype.runServer = function (port) {
                 else {
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'free');
-                    console.log('updateStatus: ', updateStatus);
                     fuseki("update", updateStatus, '', function () {
                     });
                 }
@@ -511,14 +455,11 @@ workstation.prototype.runServer = function (port) {
 
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'occupied');
-                    console.log('updateStatus: ', updateStatus);
                     fuseki("update", updateStatus, '', function () {
                     });
 
                     switch (req.body.senderID) {
                         case "SimCNV1":
-                            console.log('REACHED A', req.body.senderID);
-                            console.log('printing A section request', req.body);
                             var query = sparqlgen.getProductDetail(PalletID, "currentneed");
                             fuseki("query", query, '', function (need) {
                                 if (need == 'paper') {
@@ -526,11 +467,7 @@ workstation.prototype.runServer = function (port) {
                                     fuseki("query", exec_process_query, '', function (process) {
                                         var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
                                         fuseki("query", url_query, '', function (url) {
-                                            // request(optionsOrchestrator, function (err, res, body) {
-                                            //     if (err) {
-                                            //         console.log('Error sending invoke  command to the orchestrator');
-                                            //     }
-                                            // });
+                                            Orchestrator(url);
                                         })
                                     })
                                 }
@@ -538,25 +475,14 @@ workstation.prototype.runServer = function (port) {
                                 else {
                                     setInterval(function () {
                                         var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
-                                        console.log('Subject: ', subject);
                                         var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
-                                        console.log('getNeighQuery: ', getNeighQuery);
                                         fuseki("query", getNeighQuery, 0, function (neighbour) {
-                                            console.log('From function call: ', neighbour);
                                             var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
                                             fuseki("query", nextzonestatusquery, '', function (status) {
-                                                console.log("Next Zone Free Status: ", status);
                                                 if (status == 'free') {
                                                     var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                                                    console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
                                                     fuseki("query", reachNeighLinkQuery, 0, function (link) {
-                                                        console.log('link: ', link);
-                                                        optionsOrchestrator.body = link;
-                                                        request(optionsOrchestrator, function (err, res, body) {
-                                                            if (err) {
-                                                                console.log('Error sending invoke  command to the orchestrator');
-                                                            }
-                                                        });
+                                                        Orchestrator(link);
                                                     });
                                                 }
                                             });
@@ -568,56 +494,40 @@ workstation.prototype.runServer = function (port) {
                             break;
                         case "SimCNV7":
                             // if(PalletID!=-1) {
-                            var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "isAtWS", 'Workstation ' + ws);
-                            var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "isAtZone", 'Zone ' + zone);
-                            fuseki("update", update_ws, '', function () {
-                            });
-                            fuseki("update", update_zone, '', function () {
-                            });
-
-                            console.log("Dont do anything for now");
-                            var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
-                            console.log('Subject: ', subject);
-                            var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
-                            console.log('getNeighQuery: ', getNeighQuery);
-                            var query = sparqlgen.getProductDetail(PalletID, "currentneed");
-                            fuseki("query", query, '', function (need) {
-                                if(need = 'unload') {
-                                    var unloadquery = sparqlgen.getInstanceProperty(need,'hasUrl')
-                                    fuseki("query",unloadquery,'',function(link){
-                                        console.log("Pallet "+ PalletID+ " Unloaded");
-                                        optionsOrchestrator.body = link;
-                                        request(optionsOrchestrator, function (err, res, body) {
-                                            if (err) {
-                                                console.log('Error sending invoke  command to the orchestrator');
-                                            }
-                                        });
-                                    })
-                                }
-                                else{
+                            setTimeout(function () {
+                                var update_ws = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "isAtWS", 'Workstation ' + ws);
+                                var update_zone = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "isAtZone", 'Zone ' + zone);
+                                fuseki("update", update_ws, '', function () {
+                                });
+                                fuseki("update", update_zone, '', function () {
+                                });
+                                var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
+                                var query = sparqlgen.getProductDetail(PalletID, "currentneed");
+                                fuseki("query", query, '', function (need) {
+                                    // if (need = 'unload') {
+                                    //     var unloadquery = sparqlgen.getInstanceProperty(need, 'hasUrl')
+                                    //     fuseki("query", unloadquery, '', function (link) {
+                                    //         console.log("Pallet " + PalletID + " Unloaded");
+                                    //         Orchestrator(link);
+                                    //     })
+                                    // }
+                                    // else {
+                                    var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
                                     fuseki("query", getNeighQuery, 0, function (neighbour) {
                                         var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
                                         fuseki("query", nextzonestatusquery, '', function (nextstatus) {
                                             if (nextstatus == 'free') {
-                                                console.log('From function call: ', neighbour);
                                                 var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                                                console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
                                                 fuseki("query", reachNeighLinkQuery, 0, function (link) {
-                                                    console.log('link: ', link);
-                                                    optionsOrchestrator.body = link;
-                                                    request(optionsOrchestrator, function (err, res, body) {
-                                                        if (err) {
-                                                            console.log('Error sending invoke  command to the orchestrator');
-                                                        }
-
-                                                    });
+                                                    Orchestrator(link);
                                                 });
                                             }
                                         });
 
                                     });
-                                }
-                            });
+                                    // }
+                                });
+                            }, 1500);
                             // }
                             break;
                         default:
@@ -631,9 +541,6 @@ workstation.prototype.runServer = function (port) {
                                 });
 
                                 var subject = functions.getSubject(req.body.id, req.body.senderID);
-                                var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'occupied');
-                                console.log('updateStatus: ', updateStatus);
-
                                 console.log('REACHED C', req.body.senderID);
                                 console.log('XXXXXXXX', ws);
                                 var query = sparqlgen.getProductDetail(PalletID, "currentneed");
@@ -659,25 +566,16 @@ workstation.prototype.runServer = function (port) {
                                                         console.log('EQUIPPING . . ');
                                                         var equipwith = 'ChangePen' + need_colour.toUpperCase();
                                                         console.log('Equipwith', equipwith);
-                                                        optionsOrchestrator.body = url + equipwith;
-                                                        request(optionsOrchestrator, function (err, res, body) {
-                                                            if (err) {
-                                                                console.log('Error sending invoke  command to the orchestrator');
-                                                            }
-                                                        });
+                                                        Orchestrator(url + equipwith);
 
                                                     }
                                                     //GET DRAW URL NUMBER
                                                     var drawnum = functions.getdrawnumber(need_type)
                                                     console.log('Draw Num: ', drawnum);
-                                                    optionsOrchestrator.body = url + drawnum;
-                                                    console.log('Draw URL: ', optionsOrchestrator.body);
+                                                    // optionsOrchestrator.body = url + drawnum;
+                                                    // console.log('Draw URL: ', optionsOrchestrator.body);
 
-                                                    request(optionsOrchestrator, function (err, res, body) {
-                                                        if (err) {
-                                                            console.log('Error sending invoke  command to the orchestrator');
-                                                        }
-                                                    });
+                                                    Orchestrator(url + drawnum);
                                                 })
                                             })
                                         });
@@ -693,7 +591,6 @@ workstation.prototype.runServer = function (port) {
                 else {
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'free');
-                    console.log('updateStatus: ', updateStatus);
                     fuseki("update", updateStatus, '', function () {
                     });
                 }
@@ -710,7 +607,6 @@ workstation.prototype.runServer = function (port) {
 
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'occupied');
-                    console.log('updateStatus: ', updateStatus);
                     fuseki("update", updateStatus, '', function () {
                     });
 
@@ -718,27 +614,19 @@ workstation.prototype.runServer = function (port) {
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
                     fuseki("query", getNeighQuery, '', function (neighbour) {
-                        console.log('ZONE 4 DEBUG: NEIGHBOUR: ', neighbour);
+                        // console.log('ZONE 4 DEBUG: NEIGHBOUR: ', neighbour);
                         var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
-                        console.log('ZONE 4 DEBUG: nextzonestatusquery: ', nextzonestatusquery);
+                        // console.log('ZONE 4 DEBUG: nextzonestatusquery: ', nextzonestatusquery);
                         fuseki("query", nextzonestatusquery, '', function (nextstatus) {
-                            console.log('ZONE 4 DEBUG: nextstatus: ', nextstatus);
-                            console.log('ZONE 4 DEBUG: REF.1BYPASS (SHOULD BE FALSE): ', ref1.bypassflag);
+                            // console.log('ZONE 4 DEBUG: nextstatus: ', nextstatus);
+                            // console.log('ZONE 4 DEBUG: REF.1BYPASS (SHOULD BE FALSE): ', ref1.bypassflag);
                             if ((nextstatus == 'free') && (ref1.bypassflag == false)) {
-                                console.log('ZONE 4 DEBUG: ENTERING MOVE CONDIDTION');
-
+                                // console.log('ZONE 4 DEBUG: ENTERING MOVE CONDIDTION');
                                 ref1.bypassflag = true;
                                 var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                                console.log('ZONE 4 DEBUG: ZONE (SHOULD BE 2): ', zone);
+                                // console.log('ZONE 4 DEBUG: ZONE (SHOULD BE 4): ', zone);
                                 fuseki("query", reachNeighLinkQuery, zone, function (link) {
-                                    optionsOrchestrator.body = link;
-                                    request(optionsOrchestrator, function (err, res, body) {
-                                        if (err) {
-                                            console.log('Error sending invoke  command to the orchestrator');
-                                        }
-
-                                    });
-
+                                    Orchestrator(link);
                                 })
                             }
                         });
@@ -750,7 +638,6 @@ workstation.prototype.runServer = function (port) {
 
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'free');
-                    console.log('updateStatus: ', updateStatus);
                     fuseki("update", updateStatus, '', function () {
                     });
 
@@ -850,39 +737,20 @@ workstation.prototype.runServer = function (port) {
                 break;
             case "PalletLoaded"://update PalletID to the first product in OrderClass`
 
-                optionsUpdatepalletID.body = req.body.payload.PalletID;
-                request(optionsUpdatepalletID, function (err) {
-                    if (err) {
-                        console.log('Error requesting to update Pallet ID');
-                    }
-                    else {
-                        console.log('Successfully requested to update Pallet');
-                    }
-
-                })
+                PalletID = req.body.payload.PalletID;
+                UpdatePalletID(PalletID);
                 break;
             case "PaperLoaded":
 
                 var PalletID = ref1.zone3ID;
                 var updatequery = sparqlgen.updatePropertyGivenProperty("hasPalletID", PalletID, "hasCurrentNeed", "frame");
-                console.log('debug 98', updatequery);
                 fuseki("update", updatequery, '', function () {
-                    console.log('98.5:' + req.body.id + ' 98.7: ' + req.body.senderID)
                     var subject = functions.getSubject(req.body.id, req.body.senderID);
                     var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
                     fuseki("query", getNeighQuery, 0, function (neighbour) {
-                        console.log('From function call: ', neighbour);
                         var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                        console.log('reachNeighLinkQuery: ', reachNeighLinkQuery);
                         fuseki("query", reachNeighLinkQuery, 0, function (link) {
-                            console.log('link: ', link);
-                            optionsOrchestrator.body = link;
-                            request(optionsOrchestrator, function (err, res, body) {
-                                if (err) {
-                                    console.log('Error sending invoke  command to the orchestrator');
-                                }
-
-                            });
+                            Orchestrator(link);
                         });
 
                     });
@@ -900,9 +768,11 @@ workstation.prototype.runServer = function (port) {
                 var nextneed;
                 if ((Recipe > 0) && ((Recipe < 4))) {
                     nextneed = "screen";
+                    console.log('FROM DRAW END EXECUTION: Setting Next need for Pallet: ' + PalletID + 'as screen');
                 }
                 else if ((Recipe > 3) && ((Recipe < 7))) {
                     nextneed = "keyboard";
+                    console.log('FROM DRAW END EXECUTION: Setting Next need for Pallet: ' + PalletID + 'as keyboard');
                 }
                 else if ((Recipe > 6) && ((Recipe < 10))) {
                     nextneed = "unload";
@@ -911,19 +781,13 @@ workstation.prototype.runServer = function (port) {
                         var subject = functions.getSubject('Z3_Changed', req.body.senderID);
                         var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");
                         fuseki("query", getNeighQuery, '', function (neighbour) {
-                            var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
+                            var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus");
                             fuseki("query", nextzonestatusquery, '', function (nextstatus) {
                                 if ((nextstatus == 'free') && (ref1.bypassflag == false)) {
                                     ref1.bypassflag = true;
                                     var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                                    console.log('Zone: ', zone);
                                     fuseki("query", reachNeighLinkQuery, '3', function (link) {
-                                        optionsOrchestrator.body = link;
-                                        request(optionsOrchestrator, function (err, res, body) {
-                                            if (err) {
-                                                console.log('Error sending invoke  command to the orchestrator');
-                                            }
-                                        });
+                                        Orchestrator(link)
                                     })
                                 }
                             });
@@ -943,19 +807,19 @@ workstation.prototype.runServer = function (port) {
                             console.log('Need Colour: ' + need_colour + 'Need Type:  ' + need_type);
                             console.log('Need Type: Query  ' + getneedtype_query);
                             fuseki("query", getneedcolour_query, '', function (colour) {
-                                need_colour = colour;
+                                var need_colour_ = colour;
                                 fuseki("query", getneedtype_query, '', function (type) {
-                                    need_type = type;
+                                    var need_type_ = type;
                                     var exec_process_query = sparqlgen.getInstanceProperty('robot_' + ws, 'hasExecuteProcess');
                                     fuseki("query", exec_process_query, '', function (process) {
-                                        console.log('Need Colour: ' + need_colour + 'Need Type:  ' + need_type);
+                                        console.log('Need Colour: ' + need_colour_ + 'Need Type:  ' + need_type_);
                                         var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
                                         fuseki("query", url_query, '', function (url) {
                                             console.log('Ref1.equipwith', ref1.equip_with);
-                                            if (need_colour != ref1.equip_with) {
-                                                console.log('MISMATCH FOUND BETWEEN NEED COLOUR: ' + need_colour + ' AND EQUIPPED WITH: ' + ref1.equip_with);
+                                            if (need_colour_ != ref1.equip_with) {
+                                                console.log('MISMATCH FOUND BETWEEN NEED COLOUR: ' + need_colour_ + ' AND EQUIPPED WITH: ' + ref1.equip_with);
                                                 console.log('EQUIPPING . . ');
-                                                var equipwith = 'ChangePen' + need_colour.toUpperCase();
+                                                var equipwith = 'ChangePen' + need_colour_.toUpperCase();
                                                 console.log('Equipwith', equipwith);
                                                 optionsOrchestrator.body = url + equipwith;
                                                 request(optionsOrchestrator, function (err, res, body) {
@@ -968,16 +832,14 @@ workstation.prototype.runServer = function (port) {
                                                 });
 
                                             }
-                                            //GET DRAW URL NUMBER
-                                            var drawnum = functions.getdrawnumber(need_type);
-                                            console.log('Draw Num: ', drawnum);
-                                            optionsOrchestrator.body = url + drawnum;
-                                            console.log('Draw URL: ', optionsOrchestrator.body);
-                                            request(optionsOrchestrator, function (err, res, body) {
-                                                if (err) {
-                                                    console.log('Error sending invoke  command to the orchestrator');
-                                                }
-                                            });
+                                            setTimeout(function () {
+                                                //GET DRAW URL NUMBER
+                                                var drawnum = functions.getdrawnumber(need_type_);
+                                                console.log('Draw Num: '+ drawnum+'for Pallet: '+PalletID + 'Purpose: '+need_type_+' with colour: ', need_colour_);
+                                                // optionsOrchestrator.body = url + drawnum;
+                                                console.log('Draw URL: ' + optionsOrchestrator.body);
+                                                Orchestrator(url + drawnum)
+                                            }, 1000)
                                         })
                                     })
                                 });
@@ -1006,7 +868,7 @@ workstation.prototype.runServer = function (port) {
         if ((ref1.wsnumber != 1) && (ref1.wsnumber != 7)) {
             request.post('	http://localhost:3000/RTU/SimCNV' + ref1.wsnumber + '/events/Z4_Changed/notifs', {form: {destUrl: "http://localhost:600" + ref1.wsnumber + "/notifs/"}});
             request.post('http://localhost:3000/RTU/SimROB' + ref1.wsnumber + '/events/DrawEndExecution/notifs', {form: {destUrl: "http://localhost:600" + ref1.wsnumber + "/notifs/"}});
-            ref1.loadpen();
+
         }
 
     }
@@ -1017,7 +879,9 @@ workstation.prototype.runServer = function (port) {
         request.post('	http://localhost:3000/RTU/SimCNV' + ref1.wsnumber + '/events/Z4_Changed/notifs', {form: {destUrl: "http://localhost:60" + ref1.wsnumber + "/notifs/"}});
         request.post('	http://localhost:3000/RTU/SimCNV' + ref1.wsnumber + '/events/Z5_Changed/notifs', {form: {destUrl: "http://localhost:60" + ref1.wsnumber + "/notifs/"}});
         request.post('http://localhost:3000/RTU/SimROB' + ref1.wsnumber + '/events/DrawEndExecution/notifs', {form: {destUrl: "http://localhost:60" + ref1.wsnumber + "/notifs/"}});
+
     }
+    ref1.loadpen();
 };
 
 
@@ -1040,7 +904,7 @@ function subscriptions() {
 }
 subscriptions();
 
-
+//METHOD LOAD PEN OF CLASS WORKSTATION TO LOAD PENS
 workstation.prototype.loadpen = function () {
     var ref = this;
     var options;
@@ -1060,6 +924,7 @@ workstation.prototype.loadpen = function () {
     });
 };
 
+//INSTANTIATING OBJECTS OF CLASS WORKSTATION
 var ws1 = new workstation(1, 'paper', 'zone_2_1', 'zone_3_1', 'zone_5_1', 'NILL', '192.168.1.11', '192.168.1.12');
 var ws2 = new workstation(2, 'red', '', '', '', '', '192.168.2.1', '192.168.2.2');
 var ws3 = new workstation(3, 'blue', '', '', '', '', '192.168.3.1', '192.168.3.2');
@@ -1073,7 +938,7 @@ var ws10 = new workstation(10, 'blue', '', '', '', '', '192.168.10.1', '192.168.
 var ws11 = new workstation(11, 'green', '', '', '', '', '192.168.11.1', '192.168.11.2');
 var ws12 = new workstation(12, 'red', '', '', '', '', '192.168.12.1', '192.168.12.2');
 
-
+//USING METHOD RUNSERVER OF WOKSTATION OBJECTS DEFINED ABOVE
 ws1.runServer(6001);
 ws2.runServer(6002);
 ws3.runServer(6003);
