@@ -39,7 +39,7 @@ function UpdatePalletID(PalletID) {
 }
 
 //FUNCTION TO INVOKE OPERATIONS ON THE ORCHESTRATOR
-function Orchestrator(url,callback) {
+function Orchestrator(url) {
 
     optionsOrchestrator = {
         method: 'post',
@@ -56,9 +56,9 @@ function Orchestrator(url,callback) {
         if (!err) {
             console.log('Requested Orchestrator to Execute URl ' + url);
         }
-        else{
-            callback();
-        }
+
+
+
     })
 
 }
@@ -510,11 +510,13 @@ workstation.prototype.runServer = function (port) {
                                         var unloadquery = sparqlgen.getInstanceProperty(need, 'hasUrl')
                                         fuseki("query", unloadquery, '', function (link) {
                                             console.log("Pallet " + PalletID + " Unloaded");
-                                            Orchestrator(link, function(){
+                                            Orchestrator(link);
+                                            setTimeout(function () {
                                                 var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'free');
                                                 fuseki("update", updateStatus, '', function () {
+                                                    console.log('DEBUG: ' + updateStatus)
                                                 })
-                                            });
+                                            },700)
 
                                         })
                                     }
@@ -823,7 +825,7 @@ workstation.prototype.runServer = function (port) {
                                         console.log('Need Colour: ' + need_colour_ + 'Need Type:  ' + need_type_);
                                         var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
                                         fuseki("query", url_query, '', function (url) {
-                                            console.log('Ref1.equipwith: '+ ref1.equip_with+ 'Need Colour: ' + need_colour_ );
+                                            console.log('Ref1.equipwith: ' + ref1.equip_with + 'Need Colour: ' + need_colour_);
 
                                             if (need_colour_ != ref1.equip_with) {
                                                 console.log('MISMATCH FOUND BETWEEN NEED COLOUR: ' + need_colour_ + ' AND EQUIPPED WITH: ' + ref1.equip_with);
@@ -836,7 +838,7 @@ workstation.prototype.runServer = function (port) {
                                                         console.log('Error sending invoke  command to the orchestrator');
                                                     }
 
-                                                        ref1.equip_with = need_colour_;
+                                                    ref1.equip_with = need_colour_;
 
                                                 });
 
