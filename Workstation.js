@@ -8,7 +8,6 @@ var sparqlgen = require('./SPARQLGen');
 var parseXml = require('xml2js').parseString;
 
 
-
 //define query for S1000
 var optionsOrchestrator = {
     method: 'post',
@@ -40,7 +39,7 @@ function UpdatePalletID(PalletID) {
 }
 
 //FUNCTION TO INVOKE OPERATIONS ON THE ORCHESTRATOR
-function Orchestrator(url) {
+function Orchestrator(url,callback) {
 
     optionsOrchestrator = {
         method: 'post',
@@ -56,6 +55,9 @@ function Orchestrator(url) {
     request(optionsOrchestrator, function (err) {
         if (!err) {
             console.log('Requested Orchestrator to Execute URl ' + url);
+        }
+        else{
+            callback();
         }
     })
 
@@ -75,7 +77,7 @@ function fuseki(type, query, tempgoal, callback) {
         }
     };
     var query_ = query.split("WHERE")[0];
-    console.log('FROM FUNCTION FUSEKI: Query Received: \n TYPE: '+type+' QUERY: '+ query);
+    console.log('FROM FUNCTION FUSEKI: Query Received: \n TYPE: ' + type + ' QUERY: ' + query);
     //If the type of the query is "query" and not ipdate
     if (type == "query") {
         var result;
@@ -88,7 +90,7 @@ function fuseki(type, query, tempgoal, callback) {
                 return;
             }
 
-            console.log('FROM FUNCTION FUSEKI: Query Result for Query: '+query+' IS: '+ body.results.bindings);
+            console.log('FROM FUNCTION FUSEKI: Query Result for Query: ' + query + ' IS: ' + body.results.bindings);
             if (query.includes("variable")) {
                 var count = body.results.bindings.length;
                 if (count > 1) {
@@ -504,28 +506,33 @@ workstation.prototype.runServer = function (port) {
                                 var subject = functions.getSubject(req.body.id, req.body.senderID);  //Gets Processed String for use by Knowledge Base
                                 var query = sparqlgen.getProductDetail(PalletID, "currentneed");
                                 fuseki("query", query, '', function (need) {
-                                    // if (need = 'unload') {
-                                    //     var unloadquery = sparqlgen.getInstanceProperty(need, 'hasUrl')
-                                    //     fuseki("query", unloadquery, '', function (link) {
-                                    //         console.log("Pallet " + PalletID + " Unloaded");
-                                    //         Orchestrator(link);
-                                    //     })
-                                    // }
-                                    // else {
-                                    var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
-                                    fuseki("query", getNeighQuery, 0, function (neighbour) {
-                                        var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
-                                        fuseki("query", nextzonestatusquery, '', function (nextstatus) {
-                                            if (nextstatus == 'free') {
-                                                var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                                                fuseki("query", reachNeighLinkQuery, 0, function (link) {
-                                                    Orchestrator(link);
-                                                });
-                                            }
-                                        });
+                                    if (need == 'unload') {
+                                        var unloadquery = sparqlgen.getInstanceProperty(need, 'hasUrl')
+                                        fuseki("query", unloadquery, '', function (link) {
+                                            console.log("Pallet " + PalletID + " Unloaded");
+                                            Orchestrator(link, function(){
+                                                var updateStatus = sparqlgen.updateProperty(subject, 'hasStatus', 'free');
+                                                fuseki("update", updateStatus, '', function () {
+                                                })
+                                            });
 
-                                    });
-                                    // }
+                                        })
+                                    }
+                                    else {
+                                        var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
+                                        fuseki("query", getNeighQuery, 0, function (neighbour) {
+                                            var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
+                                            fuseki("query", nextzonestatusquery, '', function (nextstatus) {
+                                                if (nextstatus == 'free') {
+                                                    var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                                                    fuseki("query", reachNeighLinkQuery, 0, function (link) {
+                                                        Orchestrator(link);
+                                                    });
+                                                }
+                                            });
+
+                                        });
+                                    }
                                 });
                             }, 1500);
                             // }
@@ -567,10 +574,11 @@ workstation.prototype.runServer = function (port) {
                                                         var equipwith = 'ChangePen' + need_colour.toUpperCase();
                                                         console.log('Equipwith', equipwith);
                                                         Orchestrator(url + equipwith);
+                                                        ref1.equip_with = need_colour;
 
                                                     }
                                                     //GET DRAW URL NUMBER
-                                                    var drawnum = functions.getdrawnumber(need_type)
+                                                    var drawnum = functions.getdrawnumber(need_type);
                                                     console.log('Draw Num: ', drawnum);
                                                     // optionsOrchestrator.body = url + drawnum;
                                                     // console.log('Draw URL: ', optionsOrchestrator.body);
@@ -815,7 +823,8 @@ workstation.prototype.runServer = function (port) {
                                         console.log('Need Colour: ' + need_colour_ + 'Need Type:  ' + need_type_);
                                         var url_query = sparqlgen.getInstanceProperty(process, 'hasUrl');
                                         fuseki("query", url_query, '', function (url) {
-                                            console.log('Ref1.equipwith', ref1.equip_with);
+                                            console.log('Ref1.equipwith: '+ ref1.equip_with+ 'Need Colour: ' + need_colour_ );
+
                                             if (need_colour_ != ref1.equip_with) {
                                                 console.log('MISMATCH FOUND BETWEEN NEED COLOUR: ' + need_colour_ + ' AND EQUIPPED WITH: ' + ref1.equip_with);
                                                 console.log('EQUIPPING . . ');
@@ -826,16 +835,16 @@ workstation.prototype.runServer = function (port) {
                                                     if (err) {
                                                         console.log('Error sending invoke  command to the orchestrator');
                                                     }
-                                                    else {
-                                                        ref1.equip_with = need_colour;
-                                                    }
+
+                                                        ref1.equip_with = need_colour_;
+
                                                 });
 
                                             }
                                             setTimeout(function () {
                                                 //GET DRAW URL NUMBER
                                                 var drawnum = functions.getdrawnumber(need_type_);
-                                                console.log('Draw Num: '+ drawnum+'for Pallet: '+PalletID + 'Purpose: '+need_type_+' with colour: ', need_colour_);
+                                                console.log('Draw Num: ' + drawnum + 'for Pallet: ' + PalletID + 'Purpose: ' + need_type_ + ' with colour: ', need_colour_);
                                                 // optionsOrchestrator.body = url + drawnum;
                                                 console.log('Draw URL: ' + optionsOrchestrator.body);
                                                 Orchestrator(url + drawnum)
@@ -938,7 +947,7 @@ var ws10 = new workstation(10, 'blue', '', '', '', '', '192.168.10.1', '192.168.
 var ws11 = new workstation(11, 'green', '', '', '', '', '192.168.11.1', '192.168.11.2');
 var ws12 = new workstation(12, 'red', '', '', '', '', '192.168.12.1', '192.168.12.2');
 
-//USING METHOD RUNSERVER OF WOKSTATION OBJECTS DEFINED ABOVE
+//USING METHOD RUNSERVER OF WORKSTATION OBJECTS DEFINED ABOVE
 ws1.runServer(6001);
 ws2.runServer(6002);
 ws3.runServer(6003);
