@@ -368,30 +368,34 @@ workstation.prototype.runServer = function (port) {
                     console.log(query);
                     fuseki("query", query, '', function (need) {
                         var subject3 = 'zone_3_' + ws;
+                        var subject2 = 'zone_2_' + ws;
                         var getNeighQuery = sparqlgen.getNeighbourQuery(subject, "hasNeighbour");    //gets query to find the neighbour of current location
-                        var checkstatusquery = sparqlgen.getInstanceProperty(subject3, "hasStatus");
-                        fuseki("query", checkstatusquery, '', function (status) {
-                            if (status == 'occupied') {
-                                temp_goal = 'zone_1_' + next_ws;
-                            }
-                            else {
-                                if ((need == 'paper') || (need == 'unload')) {
-
+                        var checkstatus3query = sparqlgen.getInstanceProperty(subject3, "hasStatus");
+                        var checkstatus2query = sparqlgen.getInstanceProperty(subject2, "hasStatus");
+                        fuseki("query", checkstatus3query, '', function (status3) {
+                            fuseki("query", checkstatus2query, '', function (status2) {
+                                if ((status3 == 'occupied') || (status2 == 'occupied')) {
                                     temp_goal = 'zone_1_' + next_ws;
                                 }
                                 else {
-                                    temp_goal = 'zone_3_' + ws;
-                                }
-                            }
-                            fuseki("query", getNeighQuery, temp_goal, function (neighbour) {
-                                var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
-                                fuseki("query", nextzonestatusquery, '', function (nextstatus) {
-                                    if (nextstatus == 'free') {
-                                        var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
-                                        fuseki("query", reachNeighLinkQuery, '', function (link) {
-                                            Orchestrator(link);
-                                        });
+                                    if ((need == 'paper') || (need == 'unload')) {
+
+                                        temp_goal = 'zone_1_' + next_ws;
                                     }
+                                    else {
+                                        temp_goal = 'zone_3_' + ws;
+                                    }
+                                }
+                                fuseki("query", getNeighQuery, temp_goal, function (neighbour) {
+                                    var nextzonestatusquery = sparqlgen.getInstanceProperty(neighbour, "hasStatus")
+                                    fuseki("query", nextzonestatusquery, '', function (nextstatus) {
+                                        if (nextstatus == 'free') {
+                                            var reachNeighLinkQuery = sparqlgen.reachNeighbourLinkQuery(neighbour);
+                                            fuseki("query", reachNeighLinkQuery, '', function (link) {
+                                                Orchestrator(link);
+                                            });
+                                        }
+                                    });
                                 });
                             });
                         });
@@ -661,86 +665,113 @@ workstation.prototype.runServer = function (port) {
                 else {
                     ref1.bypassflag = false;
 
-                    // var subject = functions.getSubject(req.body.id, req.body.senderID);
-                    // console.log('DEBUG 5: SUBJECT', subject);
-                    // var previousneighbourquery = sparqlgen.getPreviousNeighbour('zone_1_'+next_ws);
-                    // console.log('DEBUG 5: previousneighbourquery', previousneighbourquery);
-                    // var optionsKB = {
-                    //     method: 'post',
-                    //     body: previousneighbourquery,
-                    //     json: true, // Use,If you are sending JSON data
-                    //     url: "http://127.0.0.1:3032/iii2017/query",
-                    //     headers: {
-                    //         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    //         'Accept': 'application/sparql-results+json,*/*;q=0.9'
-                    //     }
-                    // }
-                    //
-                    // request(optionsKB, function (err, res, body) {
-                    //
-                    //     if (err) {
-                    //         console.log('Error querying the knowledge base', err);
-                    //         return;
-                    //     }
-                    //
-                    //     var neighbours = [];
-                    //     for (var i = 0; i < body.results.bindings.length; i++) {
-                    //         neighbours.push(body.results.bindings[i].variable.value);
-                    //     }
-                    //     var neigh1 = neighbours[0].split("#")[1];
-                    //     var neigh2 = neighbours[1];
-                    //     if(neigh2 != undefined){
-                    //         neigh2 = neigh2.split("#")[1]
-                    //     }
-                    //     console.log('DEBUG 5: neigh1',  neighbours[0]);
-                    //     console.log('DEBUG 5: neigh2',  neighbours[1]);
-                    //
-                    //
-                    //     var status1query = sparqlgen.getInstanceProperty(neigh1,"hasStatus");
-                    //     console.log('DEBUG 5: status1query',  status1query);
-                    //
-                    //     fuseki("query",status1query,'',function(status1) {
-                    //         console.log('DEBUG 5: status1: ',  status1);
-                    //         if(status1 == 'occupied'){
-                    //             var reachlink1query = sparqlgen.reachNeighbourLinkQuery('zone_1_'+next_ws);
-                    //             console.log('DEBUG 5: reachlink1query: ',  reachlink1query);
-                    //             fuseki("query", reachlink1query, neigh1.charAt(5), function (link1) {
-                    //                 console.log('DEBUG 5: link1: ',  link1);
-                    //                 optionsOrchestrator.body = link1;
-                    //                 request(optionsOrchestrator, function (err, res, body) {
-                    //                     if (err) {
-                    //                         console.log('Error sending invoke  command to the orchestrator');
-                    //                     }
-                    //
-                    //                 });
-                    //
-                    //             });
-                    //         }
-                    //         else {
-                    //             if(neigh2 != undefined) {
-                    //                 var status2query = sparqlgen.getInstanceProperty(neigh1, "hasStatus");
-                    //                 console.log('DEBUG 5: status2query', status2query);
-                    //                 fuseki("query", status2query, '', function (status2) {
-                    //                     console.log('DEBUG 5: status2: ', status2);
-                    //                     if (status2 == 'occupied') {
-                    //                         var reachlink2query = sparqlgen.reachNeighbourLinkQuery('zone_1_'+next_ws);
-                    //                         console.log('DEBUG 5: reachlink2query: ', reachlink2query);
-                    //                         fuseki("query", reachlink2query, neigh2.charAt(5), function (link2) {
-                    //                             console.log('DEBUG 5: link2: ', link2);
-                    //                             optionsOrchestrator.body = link2;
-                    //                             request(optionsOrchestrator, function (err, res, body) {
-                    //                                 if (err) {
-                    //                                     console.log('Error sending invoke  command to the orchestrator');
-                    //                                 }
-                    //                             });
-                    //                         });
-                    //                     }
-                    //                 })
-                    //             }
-                    //         }
-                    //     })
-                    //
-                    // })
+                    var subject = functions.getSubject(req.body.id, req.body.senderID);
+                    console.log('DEBUG 5: SUBJECT', subject);
+                    var previousneighbourquery = sparqlgen.getPreviousNeighbour('zone_1_'+next_ws);
+                    console.log('DEBUG 5: previousneighbourquery', previousneighbourquery);
+                    var optionsKB = {
+                        method: 'post',
+                        body: previousneighbourquery,
+                        json: true, // Use,If you are sending JSON data
+                        url: "http://127.0.0.1:3032/iii2017/query",
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'Accept': 'application/sparql-results+json,*/*;q=0.9'
+                        }
+                    }
+
+                    request(optionsKB, function (err, res, body) {
+
+                        if (err) {
+                            console.log('Error querying the knowledge base', err);
+                            return;
+                        }
+
+                        var neighbours = [];
+                        for (var i = 0; i < body.results.bindings.length; i++) {
+                            neighbours.push(body.results.bindings[i].variable.value);
+                        }
+                        var neigh1 = neighbours[0].split("#")[1];
+                        var neigh2 = neighbours[1];
+                        if(neigh2 != undefined){
+                            neigh2 = neigh2.split("#")[1]
+                        }
+                        console.log('DEBUG 5: neigh1',  neighbours[0]);
+                        console.log('DEBUG 5: neigh2',  neighbours[1]);
+
+
+                        var status1query = sparqlgen.getInstanceProperty(neigh1,"hasStatus");
+                        console.log('DEBUG 5: status1query',  status1query);
+
+                        fuseki("query",status1query,'',function(status1) {
+                            console.log('DEBUG 5: status1: ',  status1);
+                            if(status1 == 'occupied'){
+                                if(neigh1.charAt(5) == 3){
+                                    var query = sparqlgen.getProductDetail(ref1.zone3ID, "currentneed");
+                                    fuseki("query", query, '', function (need) {
+                                        if (need == 'unload') {
+                                            var reachlink1query = sparqlgen.reachNeighbourLinkQuery('zone_1_'+next_ws);
+                                            console.log('DEBUG 5: reachlink1query: ',  reachlink1query);
+                                            fuseki("query", reachlink1query, neigh1.charAt(5), function (link1) {
+                                                console.log('DEBUG 5: link1: ',  link1);
+                                                setTimeout(function(){
+                                                    Orchestrator(link1);
+                                                },1000);
+                                            });
+                                        }
+                                    })
+                                }
+                                else{
+                                    var reachlink1query = sparqlgen.reachNeighbourLinkQuery('zone_1_'+next_ws);
+                                    console.log('DEBUG 5: reachlink1query: ',  reachlink1query);
+                                    fuseki("query", reachlink1query, neigh1.charAt(5), function (link1) {
+                                        console.log('DEBUG 5: link1: ',  link1);
+                                        setTimeout(function(){
+                                            Orchestrator(link1);
+                                        },1000);
+                                    });
+                                }
+                            }
+                            else {
+                                if(neigh2 != undefined) {
+                                    var status2query = sparqlgen.getInstanceProperty(neigh2, "hasStatus");
+                                    console.log('DEBUG 5: status2query', status2query);
+                                    fuseki("query", status2query, '', function (status2) {
+                                        console.log('DEBUG 5: status2: ', status2);
+                                        if (status2 == 'occupied') {
+                                            if(neigh2.charAt(5) == 3){
+                                                var query = sparqlgen.getProductDetail(ref1.zone3ID, "currentneed");
+                                                fuseki("query", query, '', function (need) {
+                                                    if (need == 'unload') {
+                                                        var reachlink2query = sparqlgen.reachNeighbourLinkQuery('zone_1_'+next_ws);
+                                                        console.log('DEBUG 5: reachlink2query: ',  reachlink2query);
+                                                        fuseki("query", reachlink2query, neigh2.charAt(5), function (link2) {
+                                                            console.log('DEBUG 5: link2: ',  link2);
+                                                            setTimeout(function(){
+                                                                Orchestrator(link2);
+                                                            },1000);
+                                                        });
+                                                    }
+
+                                                })
+                                            }
+                                            else{
+                                                var reachlink2query = sparqlgen.reachNeighbourLinkQuery('zone_1_'+next_ws);
+                                                console.log('DEBUG 5: reachlink2query: ',  reachlink2query);
+                                                fuseki("query", reachlink2query, neigh2.charAt(5), function (link2) {
+                                                    console.log('DEBUG 5: link2: ',  link2);
+                                                    setTimeout(function(){
+                                                        Orchestrator(link2);
+                                                    },1000);
+                                                });
+                                            }
+                                        }
+                                    })
+                                }
+                            }
+                        })
+
+                    })
                 }
 
 
