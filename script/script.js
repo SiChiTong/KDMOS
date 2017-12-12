@@ -19,7 +19,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
 
 
 
-
+    //adding additional orders
     $(".add-row").click(function(){
         var data = {
             OrderNumber: j,
@@ -35,7 +35,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
             Quantity : $("#quantity").val(),
         }
 
-
+        //preview markup table
         var markup = "<tr><td><input type='checkbox' name='record'></td><td>" + data.OrderNumber +
             "</td><td>" + data.Name +
             "</td><td>" + data.FrameType +
@@ -53,7 +53,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
         }
 
 
-
+        //Form Validation
         if ($("#Name").val()!="" && $("#Address").val()!="" && $("#Phone").val()!="") {
             $("table tbody").append(markup);
             $("#name").val("");
@@ -84,6 +84,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
 
     });
 
+        //sending the order using AJAX
     $(".send-server").click (function(){
 
         var makeAjaxCall = function (url, success_callback) {
@@ -111,7 +112,7 @@ $(document).ready(function(){ //to prevent any jQuery code from running before t
 
     });
 
-    // Find and remove selected table rows
+    // Find and remove selected orders
     $(".delete-row").click(function(){
         $("table tbody").find('input[name="record"]').each(function(i){
 

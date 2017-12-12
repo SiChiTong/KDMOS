@@ -8,7 +8,9 @@ var app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-var product= function (frameType,  frameColour, screenType,screenColour,keyboardType,keyboardColour, palletnumber) {
+//product class
+
+var product= function (frameType,  frameColour, screenType,screenColour,keyboardType,keyboardColour ) {
     this.frame = false;
     this.keyboard = false;
     this.screen = false;

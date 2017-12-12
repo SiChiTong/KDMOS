@@ -33,14 +33,6 @@ Order.prototype.addProduct = function(product) {
     this.products.push(product);
 };
 //function to update order with palletID
-Order.prototype.getOrderInfo = function(palletID) {
-    //TODO
-    var result = '';
-    for(var i = 0; i<this.products.length; i++){
-        result = result + 'Product: ' + this.products[i].getDescription() + ' for ' + this.products[i].getPrice() + ' EUR.\n'
-    }
-    return result;
-};
 
 //Updates Order with palletID in KB and Class objects
 function updateProduct(palletID) {
@@ -76,14 +68,7 @@ function listAllOrders() {
 
 }
 
-// Order.prototype.listAllOrders = function() {
-//     //TODO
-//     var result = '';
-//     for(var i = 0; i<this.orders.length; i++){
-//         result = result + '\nOrder: ' + this.orders[i].orderNum;
-//     }
-//     console.log(result);
-// };
+
 
 var optionsKB = {
     method: 'post',
@@ -98,59 +83,6 @@ var optionsKB = {
 
 
 
-//function to make query to the fuseki server
-function fuseki(type,query){
-    if (type == "query")
-    {
-        optionsKB.url = "http://127.0.0.1:3032/iii2017/query";
-    }
-    else if (type == "update")
-    {
-        optionsKB.url = "http://127.0.0.1:3032/iii2017/update";
-    }
-
-
-    optionsKB.body = query; //Assembly of the new query
-
-
-    request(optionsKB, function (err, res, body) {
-        if (err) {
-            console.log('Error instantiating Object in the knowledge base', err);
-            return;
-        }
-        //console.log(body);
-        parseXml(body, function (err, result) {
-            console.log(result.html.body[0].h1);
-            if (type == "update") {
-                if (result.html.body[0].h1 == 'Success') {
-                    console.log('Successful updation');
-                }
-                else {
-                    console.log("Error while performing updation");
-                }
-            }
-            else if(type == "query"){
-
-            }
-
-
-        });
-
-
-
-
-        // for(var i = 0; i<body.results.bindings.length; i++) {
-        //     var next = body.results.bindings[i].url.value;
-        //     //var setValue = next;
-        //     //requestOut(next);
-        //     console.log(next);
-        // }
-    });
-}
-
-
-
-
 
 
 app.get('/', function(req,res){
@@ -162,13 +94,11 @@ app.get('/', function(req,res){
         for(var i=0; i<orders.length ; i ++) {
                 console.log(orders[i]);
         }
-
-
 });
+
 app.get('/submit', function(req,res){
         res.writeHead(200);
         res.end();
-
 });
 
     //THIS IS ONLY A ONE TIME PIECE OF CODE THAT OCCURS WHEN THE ORDER IS PLACED. IT ISN'T LINKED TO THE WORKING OF THE SYSTEM. THIS IS TO  IMPLEMENT THE PERSISTENCE LAYER IN PARALLEL
@@ -209,12 +139,7 @@ app.post('/updateOrder', function(req,res){
 
 });
 
-app.post('/getProductDetails', function(req,res){
-
-
-
-});
-
+////update product with pallet ID
 app.post('/updateProduct', function(req,res){
     console.log('Pallet ID: ',req.body)
     var palletID = req.body;
@@ -237,7 +162,7 @@ setInterval(function () {     //set interval function
                product_status_= product_status
             });
     listAllOrders();
-    }, 10000);
+    }, 8000);
 
 //POLLING MECHANISM TO CARRY OUT TASKS ONCE NEW ORDER HAS BEEN DETECTED
 setInterval(function () {     //set interval function
@@ -255,7 +180,7 @@ setInterval(function () {     //set interval function
 }, 3000);
 
 
-
+//Order Class listens on port 8000
 app.listen(8000, function(){
     console.log('Order Server Running on Port 8000');
 });

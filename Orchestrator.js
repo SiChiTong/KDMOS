@@ -5,22 +5,14 @@
 var request = require('request');
 var express = require('express');
 var app = express();
-//var http = require('http').Server(app);
-var sparqlgen = require('./SPARQLGen');
-var formidable = require('formidable');
-var parseXml = require('xml2js').parseString;
-const num_of_fields = 10
 
-
-//var io = require('socket.io')(http);
 
 var bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({ extended: true }))
-var hostname = 'localhost';
+
 var port = 6000;
-var emitSocket;
 
 
 
@@ -67,25 +59,4 @@ app.listen(6500, function()
     console.log('Orchestrator running on port 6500');
 
 });
-
-//subscribing for the data
-
-
-
-// making socket connection and listening for instruction from the HTML
-// io.on('connection', function (socket) {
-//     console.log('socket connection established');
-//     socket.on('disconnect', function () {
-//         console.log('user disconnected');
-//     });
-//
-//     socket.on('move_pallet12', function (msg) {
-//         console.log("kimchi");
-//         var Client = require('node-rest-client').Client;
-//         client = new Client();
-//         callNext(cnv_1);
-//         console.log("Hello");
-//     });
-// });
-
 

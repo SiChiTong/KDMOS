@@ -33,20 +33,12 @@ try {
         socket.on('time',function(status){ // socket handling event
             request(optionsKB, function (err, res, body) {
 
-                // console.log('BODY: ',body.head.vars);
-                // console.log('RESULTS: ',body.results.bindings[0]);
-                // console.log("Number of Products: ",body.results.bindings.length );//length of bidings gives the number of products or rows the html table should have
-                // console.log("Sample Row Value: ",body.results.bindings[0].PalletID.value); //sample value to access a Product Element
-                // console.log("Sample Row Value: ",body.results.bindings[1].Frame_type.value);
                 if (body.results.bindings.length > 0) {
                     socket.emit ("result is here", body.results.bindings); // emiting result to front end
                     console.log(body.results.bindings)
                 }
                 console.log(body.results.bindings)
             });
-
-
-
         });
         socket.on('disconnect', function () {
         setTimeout(function () {
