@@ -6,6 +6,7 @@ In this Task, a **knowledge-driven monitoring and orchestration system (KDMOS)**
 ## Programming Environment
 Language: JavaScript / nodeJs
 IDE: Webstorm
+Software Design: Visual Paradigm
 
 ## Physical Environment
 
