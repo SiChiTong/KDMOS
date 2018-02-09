@@ -144,4 +144,61 @@ At the end of the transition phase is the fourth important project milestone, th
 * Delete any order if necessary by checking the box adjacent to the order and pressing the “delete order button”
 * Press the send button to place the order
 
+## Back End Development
+
+### Knowledge Base
+
+The manufactring line requires increased agility and flexibility in its operation which is acheived by incorporation of knowledge expressed by ontologies concerning the location of pallets, the services available at the workstations, pallet routing algorithms etc. The ontology for representing production logic is represented in a computer interpretable way. This knowledge model can be used by automated decision-making to configure the control component that monitors and harmonizes the whole manufacturing system.
+
+Web Ontology Language (OWL) is Resource Description Framework (RDF) based XMl language, it provides rich definition to describe entites and their internal relationships and introduces concepts of classes, properties and individuals for the purpose od description of structured information. SPARQL Protocol and RDF Query Language (SPARQL)is a useful language for retrieveing data from ontology. OWL model is queried and modified with SPARQL ASK and SELECT queries and modified by SPARQL UPDATE. SPARQL and OWL Language  provide semantics to make the knowledge representation of systems up to date in real time with changes and even to control the execution of workflow based on the well-defined knowledge base
+
+The following figures shows some of the generated graph from the knowledge base of the class members. It also showing some connections with other members of the classes and its capabilities.
+
+### Explanation of Knowledge Base
+
+##### Graph of Transport Class
+<a href="https://drive.google.com/uc?export=view&id=13jL4d_Fxvp-TqoGEEkWHlDiu8gOodApo"><img src="https://drive.google.com/uc?export=view&id=13jL4d_Fxvp-TqoGEEkWHlDiu8gOodApo" style="width: 500px; max-width: 100%; height: auto" title="Click for the larger version." /></a>
+
+##### Graph of Zones with hasLinkDest and hasReachLink Properties
+<a href="https://drive.google.com/uc?export=view&id=1EvHPG_B19FmjEqhjxJiX2J7JaUXhgbXX"><img src="https://drive.google.com/uc?export=view&id=1EvHPG_B19FmjEqhjxJiX2J7JaUXhgbXX" style="width: 500px; max-width: 100%; height: auto" title="Click for the larger version." /></a>
+
+
+#### Class Hierarchy
+
+
+
+<a href="https://drive.google.com/uc?export=view&id=1H3LJYiI1PYqAxcO138rGvMmcTn72zTR_"><img src="https://drive.google.com/uc?export=view&id=1H3LJYiI1PYqAxcO138rGvMmcTn72zTR_" style="width: 500px; max-width: 100%; height: auto" title="Click for the larger version." /></a>
+
+The structure of the Database is such that there are three Main classes (subclasses of Thing) namely Equipment, Order and Process. 
+	Equipment have subclasses Conveyor and Robot. Order has subclass Product(Order is seen as a collection of Products) and Process has subclasses Execute and Transport. Conveyor further has subclasses which are its zones.
+
+
+##### Property Assertions of Class Conveyor
+<a href="https://drive.google.com/uc?export=view&id=1YHuuTBDOL5rOayuaqf09rHLFEdQqUnQq"><img src="https://drive.google.com/uc?export=view&id=1YHuuTBDOL5rOayuaqf09rHLFEdQqUnQq" style="width: 500px; max-width: 100%; height: auto" title="Click for the larger version." /></a>
+
+Zone_1 Instances are as many as the number of zone 1’s in the system and so on. “zone_1_10” is read as Zone 1 of workstation 10. Each zone has a transitive property “hasNeighbour” that has both domain and ranges as Zones. This is the fundamental property of the system that enables it to have a dynamic character with regards to the transport of pallets in the system. In the case shown in the Figure zone _1_1 has two neighbours zone_2_2 and zone_4_2. The Dynamic Behaviour is explained in the end
+
+##### Property Assertions of Class Robot
+<a href="https://drive.google.com/uc?export=view&id=1slSEP0kWPaIrdTOoq8HPgdfRLvbaEzV3"><img src="https://drive.google.com/uc?export=view&id=1slSEP0kWPaIrdTOoq8HPgdfRLvbaEzV3" style="width: 500px; max-width: 100%; height: auto" title="Click for the larger version." /></a>
+
+Robot have a property “hasExecuteProcess” that have the domain as “Robot” and range as “Process>Execute”. The intuition is that Robot have the ability that enable them to “execute” certain “Process”. What these processes are will be covered shortly.
+
+##### Property Assertions of Class Product
+<a href="https://drive.google.com/uc?export=view&id=1EdQB9TLZe6vznVTILtMxDYPUW5ldRqIU"><img src="https://drive.google.com/uc?export=view&id=1EdQB9TLZe6vznVTILtMxDYPUW5ldRqIU" style="width: 500px; max-width: 100%; height: auto" title="Click for the larger version." /></a>
+
+The properties of the Products are shown in the above figure and are self-explanatory. Please note that this is populated dynamically during run time by the Order Class and the above picture is shown just for illustrative purposes.
+
+##### Property Assertions of Class Execute
+<a href="https://drive.google.com/uc?export=view&id=1uMR_Rl-PZqT9HPMNDcXeQJ38K9e-uxyv"><img src="https://drive.google.com/uc?export=view&id=1uMR_Rl-PZqT9HPMNDcXeQJ38K9e-uxyv" style="width: 500px; max-width: 100%; height: auto" title="Click for the larger version." /></a>
+
+The execute class contains service execution Urls for each Robot. The Robot first checks its execution capabilities by its “hasExecutionProcess” property which inturn returs the service execution URLs to the Robot. This is how the robot executes its “Process” operations on the pallets. The basic URL is retrieved from the hasUrl property and is merged with the requirement of the Pallet also retrieved from the Knowledge Base from the Product class during runtime.
+
+##### Transport Class and the Dynamic Transport Mechanism
+<a href="https://drive.google.com/uc?export=view&id=1lcE3HilGTVZLa7X0s9HcM0NDJD9YuoWd"><img src="https://drive.google.com/uc?export=view&id=1lcE3HilGTVZLa7X0s9HcM0NDJD9YuoWd" style="width: 500px; max-width: 100%; height: auto" title="Click for the larger version." /></a>
+
+The Transport class has instances that can take any instances names. In this why we introduce the dynamic capability of transport of pallets/products within the system. Here the names are just labeled for sanity purposes and for easy debugging during the project development phase. Each transport instance, has atleast two properties, hasLinkDest which has an arbitrary zone number and the Urls that can be used to reach it. To understand better, we can consider the case as in the above figure. “zone_1_1” read as zone 1 of workstation one has to Links that can be used to reach it as shown. One link is from the zone 3 of the previous workstation and the other being from zone 4 of the previous workstation, which in this case is Workstation 12.
+**The Dynamic Transport Mechanism**, when each Pallet reaches zone 1 of any given workstation, it first checks if the workstation is busy or not. 
+In the case that it is not, it pallet is assigned a temporary goal to reach the zone 3 of the workstation. In the case that it is busy, the pallet is assigned a temporary goal to reach the zone 1 of the next workstation. Now the Pallet checks for the Neighbours of the current zone to see if it’s the temporary goal assigned, using the “hasNeighbour” property of the zones. This would typically return zones 2 and 4 of the workstation. Next as the goal is not found, the workstation further checks their neighbours (neighbour’s neighbour). At this level, the temp goal for the pallet is found and the workstation queries the Knowledge Base for the link that can be used to reach the neighbor whose neigbour is the temporary goal using the “hasReachLink” property of the .
+This is not just the case with zone 1. In every zone, the workstation first queries the KB for its neighbouring zone and then queries the Knowledge base for links to reach those zones. The way this is done is that the workstation queries “hasReachLink” Property of a zone that has the “hasLinkDest” of the destination that it wants to reach. **In this way irrespective of the name of the Transport Instance the link for it is always returned correctly. Also if there were a robot that manually picks the pallet and puts it in any random place in the system it would carry on from there by checking its immediate neighbours and so on and so forth.**
+
 
