@@ -4,9 +4,9 @@
 In this Task, a **knowledge-driven monitoring and orchestration system (KDMOS)** for an assembly line is built from scratch. The system is knowledge-driven, i.e. it uses either Knowledge base (OWL) to make decisions on operations. The operations may include, for example, decisions where the pallet should go next, what operations the robot should execute essentially mapping product needs and the production system capacity. The Knowledge base (KB) or Expert base (KB) also, for example, helps refining how to reach next destination in terms of the services that have to be invoked.
 
 ## Programming Environment
-Language: JavaScript / nodeJs
-IDE: Webstorm
-Software Design: Visual Paradigm
+* Language: JavaScript / nodeJs
+* IDE: Webstorm
+* Software Design: Visual Paradigm
 
 ## Physical Environment
 
